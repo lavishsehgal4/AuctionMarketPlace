@@ -1,0 +1,23 @@
+[
+  {
+    "id": "u1",
+    "name": "Alice Chen",
+    "email": "alice@demo.com",
+    "password": "seller123",
+    "role": "seller"
+  },
+  {
+    "id": "u2",
+    "name": "Bob Martinez",
+    "email": "bob@demo.com",
+    "password": "bidder123",
+    "role": "bidder"
+  },
+  {
+    "id": "u3",
+    "name": "Sara Kim",
+    "email": "sara@demo.com",
+    "password": "bidder456",
+    "role": "bidder"
+  }
+]

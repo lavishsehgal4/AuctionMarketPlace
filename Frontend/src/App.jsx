@@ -1,122 +1,85 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+// Root component — sets up routing and holds the fake-auth state.
+// Renders Navbar on every route; routes by role after fake login.
 
-function App() {
-  const [count, setCount] = useState(0)
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+import Navbar from './components/Navbar';
+import LoginPage from './pages/LoginPage';
+import AuctionListPage from './pages/AuctionListPage';
+import AuctionDetailPage from './pages/AuctionDetailPage';
+import CreateAuctionPage from './pages/CreateAuctionPage';
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function RequireAuth({ currentUser, children }) {
+  if (!currentUser) return <Navigate to="/login" replace />;
+  return children;
 }
 
-export default App
+function RequireRole({ currentUser, role, children }) {
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (currentUser.role !== role) {
+    return <Navigate to={currentUser.role === 'seller' ? '/seller' : '/auctions'} replace />;
+  }
+  return children;
+}
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+
+  function handleLogin(user) {
+    setCurrentUser(user);
+  }
+
+  function handleLogout() {
+    setCurrentUser(null);
+  }
+
+  return (
+    <BrowserRouter>
+      <Navbar currentUser={currentUser} onLogout={handleLogout} />
+      <Routes>
+        {/* Public */}
+        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+
+        {/* Bidder routes */}
+        <Route
+          path="/auctions"
+          element={
+            <RequireAuth currentUser={currentUser}>
+              <AuctionListPage currentUser={currentUser} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/auction/:id"
+          element={
+            <RequireAuth currentUser={currentUser}>
+              <AuctionDetailPage currentUser={currentUser} />
+            </RequireAuth>
+          }
+        />
+
+        {/* Seller routes */}
+        <Route
+          path="/seller"
+          element={
+            <RequireRole currentUser={currentUser} role="seller">
+              <CreateAuctionPage currentUser={currentUser} />
+            </RequireRole>
+          }
+        />
+
+        {/* Default redirect */}
+        <Route
+          path="/"
+          element={
+            currentUser
+              ? <Navigate to={currentUser.role === 'seller' ? '/seller' : '/auctions'} replace />
+              : <Navigate to="/login" replace />
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

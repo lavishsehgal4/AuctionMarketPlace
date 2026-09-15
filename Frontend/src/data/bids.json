@@ -1,0 +1,14 @@
+[
+  { "id": "b1", "auctionId": "a1", "bidderId": "u2", "bidderName": "Bob Martinez", "amount": 900,  "placedAt": "2026-09-10T11:00:00Z" },
+  { "id": "b2", "auctionId": "a1", "bidderId": "u3", "bidderName": "Sara Kim",     "amount": 1000, "placedAt": "2026-09-11T09:30:00Z" },
+  { "id": "b3", "auctionId": "a1", "bidderId": "u2", "bidderName": "Bob Martinez", "amount": 1100, "placedAt": "2026-09-12T14:00:00Z" },
+  { "id": "b4", "auctionId": "a1", "bidderId": "u3", "bidderName": "Sara Kim",     "amount": 1250, "placedAt": "2026-09-13T10:15:00Z" },
+
+  { "id": "b5", "auctionId": "a2", "bidderId": "u2", "bidderName": "Bob Martinez", "amount": 420, "placedAt": "2026-09-12T08:30:00Z" },
+  { "id": "b6", "auctionId": "a2", "bidderId": "u3", "bidderName": "Sara Kim",     "amount": 500, "placedAt": "2026-09-13T11:00:00Z" },
+  { "id": "b7", "auctionId": "a2", "bidderId": "u2", "bidderName": "Bob Martinez", "amount": 620, "placedAt": "2026-09-14T16:45:00Z" },
+
+  { "id": "b8",  "auctionId": "a3", "bidderId": "u3", "bidderName": "Sara Kim",     "amount": 1600, "placedAt": "2026-09-09T10:00:00Z" },
+  { "id": "b9",  "auctionId": "a3", "bidderId": "u2", "bidderName": "Bob Martinez", "amount": 1800, "placedAt": "2026-09-10T12:00:00Z" },
+  { "id": "b10", "auctionId": "a3", "bidderId": "u3", "bidderName": "Sara Kim",     "amount": 3200, "placedAt": "2026-09-14T09:00:00Z" }
+]

@@ -1,0 +1,125 @@
+/* BidForm styles */
+
+.wrap {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 20px;
+}
+
+.currentBidRow {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+
+.currentBid {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.5px;
+}
+
+.increment {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cta);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inputRow:focus-within {
+  border-color: var(--cta);
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+}
+
+.currencyPrefix {
+  padding: 0 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-light);
+  background: #f9fafb;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-right: 1.5px solid var(--border);
+  user-select: none;
+}
+
+.input {
+  border: none;
+  border-radius: 0;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 12px 14px;
+  flex: 1;
+  box-shadow: none;
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+.watchBtn {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.success {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #166534;
+  text-align: center;
+}
