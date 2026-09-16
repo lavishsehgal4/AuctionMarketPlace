@@ -33,7 +33,7 @@ const authenticateUser = async (email, password) => {
 // TODO: Implement fetchUserProfile service
 // Purpose: Get user profile data by user ID
 // Input: user ID
-// Output: User profile data
+// Output: User profile data  
 const fetchUserProfile = async (userId) => {
   // TODO: Find user by ID in database
   // TODO: Return user data (exclude sensitive info like password)
