@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// user table (Auth table)
+
+model User {
+  id             String        @id @default(uuid()) @db.Uuid
+  email          String        @unique @db.VarChar(255)
+  password_hash  String        @db.VarChar(255)
+  full_name      String        @db.VarChar(150)
+  display_name   String        @db.VarChar(50)
+  account_status AccountStatus @default(ACTIVE)
+  phone          String?       @db.VarChar(20)
+  avatar_url     String?       @db.VarChar(500)
+  kyc_status     KycStatus     @default(NOT_STARTED)
+  last_login_at  DateTime?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  deleted_at     DateTime?
+
+  @@index([account_status])
+  @@index([created_at])
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
