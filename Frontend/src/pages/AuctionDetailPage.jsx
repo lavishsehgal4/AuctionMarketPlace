@@ -8,6 +8,7 @@ import { getAuctionById } from '../api/auctionsApi';
 import { getBidsByAuctionId } from '../api/bidsApi';
 import BidForm from '../components/BidForm';
 import BidHistory from '../components/BidHistory';
+import ErrorState from '../components/ErrorState';
 import { formatTimeLeft, formatDateTime } from '../utils/time';
 import styles from './AuctionDetailPage.module.css';
 
@@ -16,19 +17,35 @@ export default function AuctionDetailPage() {
   const [auction, setAuction] = useState(null);
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([getAuctionById(id), getBidsByAuctionId(id)]).then(
-      ([auctionData, bidsData]) => {
+    let active = true;
+
+    Promise.all([getAuctionById(id), getBidsByAuctionId(id)])
+      .then(([auctionData, bidsData]) => {
+        if (!active) return;
         setAuction(auctionData);
         setBids(bidsData);
-        setLoading(false);
-      }
-    );
+      })
+      .catch(() => {
+        if (active) setError('We could not load this auction.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {
     return <div className={styles.loading} aria-live="polite">Loading auction…</div>;
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
 
   if (!auction) {

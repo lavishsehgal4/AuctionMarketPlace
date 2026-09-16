@@ -21,6 +21,8 @@ const EMPTY_FORM = {
 export default function CreateAuctionPage({ currentUser }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -29,9 +31,17 @@ export default function CreateAuctionPage({ currentUser }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    // MVP: createAuction is a no-op — just shows success state
-    await createAuction({ ...form, sellerId: currentUser?.id });
-    setSubmitted(true);
+    setSubmitting(true);
+    setError('');
+
+    try {
+      await createAuction({ ...form, sellerId: currentUser?.id });
+      setSubmitted(true);
+    } catch {
+      setError('We could not create your auction. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function handleReset() {
@@ -185,8 +195,8 @@ export default function CreateAuctionPage({ currentUser }) {
           </section>
 
           <div className={styles.actions}>
-            <button type="submit" className={`btn-primary ${styles.submitBtn}`}>
-              🏷️ List Auction
+            <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={submitting}>
+              {submitting ? 'Listing…' : '🏷️ List Auction'}
             </button>
             <button
               type="button"
@@ -196,6 +206,7 @@ export default function CreateAuctionPage({ currentUser }) {
               Clear form
             </button>
           </div>
+          {error && <p className={styles.error} role="alert">{error}</p>}
         </form>
 
         {/* Side preview */}
