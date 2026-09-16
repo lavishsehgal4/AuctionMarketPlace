@@ -5,21 +5,47 @@
 import { useState, useEffect } from 'react';
 import { getAuctions } from '../api/auctionsApi';
 import AuctionCard from '../components/AuctionCard';
+import ErrorState from '../components/ErrorState';
 import styles from './AuctionListPage.module.css';
 
 const CATEGORIES = ['All', 'Photography', 'Furniture', 'Books', 'Music', 'Watches', 'Art'];
 
-export default function AuctionListPage({ currentUser }) {
+export default function AuctionListPage() {
   const [auctions, setAuctions] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    getAuctions().then(setAuctions);
+    let active = true;
+
+    getAuctions()
+      .then((data) => {
+        if (active) setAuctions(data);
+      })
+      .catch(() => {
+        if (active) setError('We could not load the auctions.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filtered = activeCategory === 'All'
     ? auctions
     : auctions.filter((a) => a.category === activeCategory);
+
+  if (loading) {
+    return <div className={styles.empty} aria-live="polite">Loading auctions…</div>;
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
+  }
 
   return (
     <main>

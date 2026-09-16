@@ -12,22 +12,35 @@ export default function LoginPage({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [fakeUsers, setFakeUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    getFakeUsers().then(setFakeUsers);
+    getFakeUsers()
+      .then(setFakeUsers)
+      .catch(() => setError('Demo accounts could not be loaded. You can still try signing in.'))
+      .finally(() => setLoadingUsers(false));
   }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    const user = await findUserByCredentials(email, password);
-    if (!user) {
-      setError('Invalid email or password. Try one of the demo accounts below.');
-      return;
+    setSubmitting(true);
+
+    try {
+      const user = await findUserByCredentials(email, password);
+      if (!user) {
+        setError('Invalid email or password. Try one of the demo accounts below.');
+        return;
+      }
+      onLogin(user);
+      navigate(user.role === 'seller' ? '/seller' : '/auctions');
+    } catch {
+      setError('Sign in failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    onLogin(user);
-    navigate(user.role === 'seller' ? '/seller' : '/auctions');
   }
 
   function fillAccount(user) {
@@ -48,7 +61,7 @@ export default function LoginPage({ onLogin }) {
         {/* Demo accounts hint */}
         <div className={styles.demoBox} aria-label="Available demo accounts">
           <p className={styles.demoLabel}>Demo accounts — click to fill:</p>
-          <div className={styles.demoList}>
+          <div className={styles.demoList} aria-busy={loadingUsers}>
             {fakeUsers.map((u) => (
               <button
                 key={u.id}
@@ -96,8 +109,8 @@ export default function LoginPage({ onLogin }) {
             <p className={styles.error} role="alert">{error}</p>
           )}
 
-          <button type="submit" className={`btn-primary ${styles.submitBtn}`}>
-            Sign in
+          <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={submitting}>
+            {submitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>

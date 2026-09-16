@@ -100,6 +100,12 @@
   color: var(--text-light);
 }
 
+.error {
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .submitBtn {
   width: 100%;
   padding: 14px;

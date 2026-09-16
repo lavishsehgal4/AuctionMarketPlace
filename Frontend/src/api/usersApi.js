@@ -10,8 +10,12 @@ export function getFakeUsers() {
 }
 
 export function findUserByCredentials(email, password) {
-  const user = fakeUsers.find(
-    (u) => u.email === email && u.password === password
-  ) || null;
+  const user =
+    fakeUsers.find(
+      (u) =>
+        u.email.toLowerCase() === String(email).toLowerCase() &&
+        u.password === password
+    ) || null;
+
   return Promise.resolve(user);
 }
