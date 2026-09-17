@@ -29,6 +29,13 @@ router.post('/register', authController.registerUserController);
 router.post('/login', authController.loginUserController);
 
 /**
+ * @route   GET /api/v1/auth/me
+ * @desc    Get the current authenticated user's profile
+ * @access  Private
+ */
+router.get('/me', verifyAccessTokenMiddleware, authController.getCurrentUserController);
+
+/**
  * @route   POST /api/auth/refresh-token
  * @desc    Get new access token using refresh token
  * @access  Private (requires refresh token in cookies)

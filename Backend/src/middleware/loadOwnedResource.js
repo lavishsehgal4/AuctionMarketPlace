@@ -1,7 +1,7 @@
 const { getPrismaClient } = require('../config/supabase');
 const AppError = require('../errors/AppError');
 
-const loadOwnedResource = ({ model, idParam, ownerField, resourceKey }) => async (req, res, next) => {
+const loadOwnedResource = ({ model, idParam, ownerField, resourceKey, include }) => async (req, res, next) => {
   try {
     if (!req.user?.userId) {
       throw new AppError('Authentication is required', 401, 'AUTHENTICATION_REQUIRED');
@@ -18,6 +18,7 @@ const loadOwnedResource = ({ model, idParam, ownerField, resourceKey }) => async
         id: resourceId,
         [ownerField]: req.user.userId,
       },
+      include,
     });
 
     if (!resource) {

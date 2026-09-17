@@ -10,6 +10,12 @@ const authRoutes = require('./auth/auth.routes');
 // Import category routes
 const categoryRoutes = require('./categoryManagement/category.routes');
 
+// Import product routes
+const productRoutes = require('./product/product.routes');
+const auctionRoutes = require('./auction/auction.routes');
+const AppError = require('./errors/AppError');
+const errorHandler = require('./errors/errorHandler');
+
 const app = express();
 
 // ============================================
@@ -43,18 +49,17 @@ app.get('/', (req, res) => {
 // ============================================
 // API Routes
 // ============================================
-app.use('/api/auth', authRoutes);
-app.use('/api/categories', categoryRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/auctions', auctionRoutes);
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+app.use((req, res, next) => {
+  next(new AppError('Route not found', 404, 'ROUTE_NOT_FOUND'));
 });
 
 // Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use(errorHandler);
 
 module.exports = app;

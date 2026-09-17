@@ -1,4 +1,5 @@
 const { verifyAccessToken, extractTokenFromHeader } = require('../utils/jwt');
+const AppError = require('../errors/AppError');
 
 // ============================================
 // Auth Middleware
@@ -17,19 +18,13 @@ const verifyAccessTokenMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authorization header missing',
-      });
+      throw new AppError('Authorization header missing', 401, 'AUTHENTICATION_REQUIRED');
     }
 
     // Extract token from "Bearer token" format
     const token = extractTokenFromHeader(authHeader);
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid authorization header format. Use: Bearer <token>',
-      });
+      throw new AppError('Invalid authorization header format. Use: Bearer <token>', 401, 'INVALID_ACCESS_TOKEN');
     }
 
     // Verify token
@@ -38,21 +33,17 @@ const verifyAccessTokenMiddleware = (req, res, next) => {
     // Attach user data to request
     req.user = decoded;
 
-    next();
+    return next();
   } catch (error) {
-    // Check if it's a token expiration error
-    if (error.message.includes('expired')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access token expired',
-        code: 'TOKEN_EXPIRED',
-      });
+    if (error.isOperational) {
+      return next(error);
     }
 
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid access token',
-    });
+    if (error.message.includes('expired')) {
+      return next(new AppError('Access token expired', 401, 'TOKEN_EXPIRED'));
+    }
+
+    return next(new AppError('Invalid access token', 401, 'INVALID_ACCESS_TOKEN'));
   }
 };
 
@@ -66,21 +57,17 @@ const extractRefreshTokenFromCookie = (req, res, next) => {
     const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-      return res.status(401).json({
-        success: false,
-        message: 'Refresh token not found in cookies',
-      });
+      throw new AppError('Refresh token not found in cookies', 401, 'REFRESH_TOKEN_INVALID');
     }
 
     // Attach refresh token to request
     req.refreshToken = refreshToken;
 
-    next();
+    return next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Failed to extract refresh token',
-    });
+    return next(error.isOperational
+      ? error
+      : new AppError('Failed to extract refresh token', 401, 'REFRESH_TOKEN_INVALID'));
   }
 };
 
