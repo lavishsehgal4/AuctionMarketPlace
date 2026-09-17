@@ -34,6 +34,9 @@ model User {
 
   refresh_tokens RefreshToken[]
   products       Product[]
+  seller_auctions Auction[] @relation("SellerAuctions")
+  won_auctions    Auction[] @relation("WonAuctions")
+  placed_bids     Bid[]     @relation("PlacedBids")
 
   @@index([account_status])
   @@index([created_at])
@@ -104,10 +107,64 @@ model Product {
 
   seller   User     @relation(fields: [seller_id], references: [id])
   category Category @relation(fields: [category_id], references: [id])
+  auction  Auction?
 
   @@index([seller_id])
   @@index([category_id])
   @@index([created_at])
+}
+
+// ============================================================
+// AUCTION TABLE
+// ============================================================
+// Stores a seller's auction configuration and its final result.
+// Each product may be registered in exactly one auction.
+// ============================================================
+
+model Auction {
+  id                String        @id @default(uuid()) @db.Uuid
+  product_id        String        @unique @db.Uuid
+  seller_id         String        @db.Uuid
+  starting_price    Decimal       @db.Decimal(12, 2)
+  current_bid       Decimal       @db.Decimal(12, 2)
+  min_bid_increment Decimal       @default(1) @db.Decimal(12, 2)
+  start_time        DateTime
+  end_time          DateTime
+  status            AuctionStatus @default(SCHEDULED)
+  winner_id         String?       @db.Uuid
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  product Product @relation(fields: [product_id], references: [id])
+  seller  User    @relation("SellerAuctions", fields: [seller_id], references: [id])
+  winner  User?   @relation("WonAuctions", fields: [winner_id], references: [id])
+  bids    Bid[]
+
+  @@index([seller_id])
+  @@index([winner_id])
+  @@index([status, start_time])
+  @@index([status, end_time])
+}
+
+// ============================================================
+// BID TABLE
+// ============================================================
+// Retains every successful bid so bidder and auction histories
+// can be queried after the auction ends.
+// ============================================================
+
+model Bid {
+  id         String   @id @default(uuid()) @db.Uuid
+  auction_id String   @db.Uuid
+  bidder_id  String   @db.Uuid
+  amount     Decimal  @db.Decimal(12, 2)
+  placed_at  DateTime @default(now())
+
+  auction Auction @relation(fields: [auction_id], references: [id], onDelete: Cascade)
+  bidder  User    @relation("PlacedBids", fields: [bidder_id], references: [id])
+
+  @@index([auction_id, placed_at])
+  @@index([bidder_id, auction_id, placed_at])
 }
 
 
@@ -146,4 +203,16 @@ enum KycStatus {
 enum AccountType {
   BIDDER
   SELLER
+}
+
+// ============================================================
+// AUCTION STATUS
+// ============================================================
+
+enum AuctionStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  UNSOLD
+  CANCELLED
 }
