@@ -1,69 +1,261 @@
+const { registerUserService, loginUserService, refreshAccessTokenService, logoutUserService } = require('./auth.service');
+
 // ============================================
 // Auth Controller
 // ============================================
-// This file will contain all authentication
-// related controller methods. These methods
-// handle incoming requests and call the
-// appropriate service functions.
+// Request/Response handling layer
+// Connects routes with service layer
 // ============================================
 
-// TODO: Implement registerUser controller
-const registerUser = (req, res) => {
-  // TODO: Extract user data from request body
-  // TODO: Call authService.registerNewUser()
-  // TODO: Return success/error response
+/**
+ * Register user controller
+ * POST /api/auth/register
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ */
+const registerUserController = async (req, res) => {
+  try {
+    const { email, password, full_name, display_name, account_type } = req.body;
+
+    // Basic validation
+    if (!email || !password || !full_name || !display_name || !account_type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, password, full name, display name, and account type are required',
+      });
+    }
+
+    // Call service
+    const result = await registerUserService({
+      email,
+      password,
+      full_name,
+      display_name,
+      account_type,
+    });
+
+    // Set tokens in cookies
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        user: result.user,
+      },
+    });
+  } catch (error) {
+    // Check for validation errors
+    if (error.validationErrors) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password does not meet security requirements',
+        errors: error.validationErrors,
+      });
+    }
+
+    // Handle known errors
+    if (error.message.includes('already registered')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Generic error
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Registration failed',
+    });
+  }
 };
 
-// TODO: Implement loginUser controller
-const loginUser = (req, res) => {
-  // TODO: Extract email and password from request body
-  // TODO: Call authService.authenticateUser()
-  // TODO: Return JWT token and user info
+/**
+ * Login user controller
+ * POST /api/auth/login
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ */
+const loginUserController = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Basic validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
+    // Call service
+    const result = await loginUserService({
+      email,
+      password,
+    });
+
+    // Set tokens in cookies
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: result.user,
+      },
+    });
+  } catch (error) {
+    // Handle known errors
+    if (error.message.includes('Invalid email or password')) {
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (error.message.includes('Account is')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Generic error
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Login failed',
+    });
+  }
 };
 
-// TODO: Implement logoutUser controller
-const logoutUser = (req, res) => {
-  // TODO: Invalidate user's JWT token
-  // TODO: Clear authentication session
-  // TODO: Return success message
+/**
+ * Refresh access token controller
+ * POST /api/auth/refresh-token
+ * Uses refresh token from cookies to generate new access token
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ */
+const refreshAccessTokenController = async (req, res) => {
+  try {
+    // Get refresh token from cookies (attached by middleware)
+    const refreshToken = req.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token not found',
+      });
+    }
+
+    // Call service
+    const result = await refreshAccessTokenService(refreshToken);
+
+    // Set new access token in cookie
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Access token refreshed',
+      data: {
+        user: result.user,
+      },
+    });
+  } catch (error) {
+    // Handle token expired or invalid
+    if (error.message.includes('Invalid refresh token') || error.message.includes('expired')) {
+      // Clear invalid refresh token cookie
+      res.clearCookie('refreshToken');
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+        code: 'REFRESH_TOKEN_INVALID',
+      });
+    }
+
+    if (error.message.includes('Account is')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Generic error
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Token refresh failed',
+    });
+  }
 };
 
-// TODO: Implement getCurrentUserProfile controller
-const getCurrentUserProfile = (req, res) => {
-  // TODO: Extract user ID from verified token (req.user)
-  // TODO: Call authService.fetchUserProfile()
-  // TODO: Return user profile data
-};
+/**
+ * Logout user controller
+ * POST /api/auth/logout
+ * Deletes refresh token from database and clears cookies
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ */
+const logoutUserController = async (req, res) => {
+  try {
+    // Get refresh token from cookies (attached by middleware)
+    const refreshToken = req.refreshToken;
 
-// TODO: Implement refreshAuthToken controller
-const refreshAuthToken = (req, res) => {
-  // TODO: Extract current JWT token from request
-  // TODO: Call authService.generateNewToken()
-  // TODO: Return new JWT token
-};
+    if (refreshToken) {
+      // Call service to delete refresh token from database
+      await logoutUserService(refreshToken);
+    }
 
-// TODO: Implement updateUserProfile controller
-const updateUserProfile = (req, res) => {
-  // TODO: Extract user ID from verified token
-  // TODO: Extract updated profile data from request body
-  // TODO: Call authService.updateUserProfileData()
-  // TODO: Return updated profile
-};
+    // Clear cookies
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
 
-// TODO: Implement changeUserPassword controller
-const changeUserPassword = (req, res) => {
-  // TODO: Extract user ID from verified token
-  // TODO: Extract old password and new password from request body
-  // TODO: Call authService.updateUserPassword()
-  // TODO: Return success message
+    return res.status(200).json({
+      success: true,
+      message: 'Logout successful',
+    });
+  } catch (error) {
+    // Even if deletion fails, still clear cookies and respond with success
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logout successful',
+    });
+  }
 };
 
 module.exports = {
-  registerUser,
-  loginUser,
-  logoutUser,
-  getCurrentUserProfile,
-  refreshAuthToken,
-  updateUserProfile,
-  changeUserPassword,
+  registerUserController,
+  loginUserController,
+  refreshAccessTokenController,
+  logoutUserController,
 };

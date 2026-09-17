@@ -1,91 +1,235 @@
+const authRepository = require('./auth.repository');
+const { hashPassword, comparePassword, validatePasswordStrength, generateRefreshToken, verifyRefreshToken } = require('../utils/bcrypt');
+const { generateAccessToken } = require('../utils/jwt');
+
 // ============================================
 // Auth Service
 // ============================================
-// This file will contain all authentication
-// related business logic and database operations.
-// Services call Prisma for database queries.
+// Business logic layer - handles authentication logic
+// Calls repository for DB operations
 // ============================================
 
-// TODO: Implement registerNewUser service
-// Purpose: Create new user in database
-// Input: user email, password, name
-// Output: Created user object or error
-const registerNewUser = async (userData) => {
-  // TODO: Validate input data
-  // TODO: Check if user already exists (email uniqueness)
-  // TODO: Hash password using bcrypt
-  // TODO: Create user in database using Prisma
-  // TODO: Return new user (without password)
+/**
+ * Register new user
+ * Validates input, checks email exists, hashes password, creates user and refresh token
+ * @param {Object} credentials - { email, password, full_name, display_name, account_type }
+ * @returns {Promise<Object>} { user, accessToken, refreshToken }
+ */
+const registerUserService = async (credentials) => {
+  try {
+    const { email, password, full_name, display_name, account_type } = credentials;
+
+    // Validate required fields
+    if (!email || !password || !full_name || !display_name || !account_type) {
+      throw new Error('Email, password, full name, display name, and account type are required');
+    }
+
+    // Validate account_type is BIDDER or SELLER
+    if (!['BIDDER', 'SELLER'].includes(account_type)) {
+      throw new Error('Account type must be BIDDER or SELLER');
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      const error = new Error('Password does not meet security requirements');
+      error.validationErrors = passwordValidation.errors;
+      throw error;
+    }
+
+    // Check if email already exists
+    const userExists = await authRepository.emailExists(email);
+    if (userExists) {
+      throw new Error('Email already registered');
+    }
+
+    // Hash password
+    const passwordHash = await hashPassword(password);
+
+    // Create user in database
+    const user = await authRepository.createUser({
+      email,
+      password_hash: passwordHash,
+      full_name,
+      display_name,
+      account_type, // BIDDER or SELLER
+    });
+
+    // Generate access token (JWT)
+    const accessToken = generateAccessToken(user.id, user.email, user.display_name);
+
+    // Generate refresh token (random string)
+    const { plainToken: refreshToken, hashedToken: refreshTokenHash } = generateRefreshToken();
+
+    // Store hashed refresh token in database
+    await authRepository.storeRefreshToken(user.id, refreshTokenHash);
+
+    // Update last login
+    await authRepository.updateLastLogin(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        display_name: user.display_name,
+        account_type: user.account_type,
+      },
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    throw error;
+  }
 };
 
-// TODO: Implement authenticateUser service
-// Purpose: Verify user credentials and generate JWT token
-// Input: email, password
-// Output: JWT token and user info or error
-const authenticateUser = async (email, password) => {
-  // TODO: Find user by email in database
-  // TODO: Compare provided password with hashed password
-  // TODO: If valid, generate JWT token
-  // TODO: Return token and user info (without password)
-  // TODO: If invalid, throw authentication error
+/**
+ * Login user
+ * Validates credentials, generates tokens, stores refresh token
+ * @param {Object} credentials - { email, password }
+ * @returns {Promise<Object>} { user, accessToken, refreshToken }
+ */
+const loginUserService = async (credentials) => {
+  try {
+    const { email, password } = credentials;
+
+    // Validate required fields
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+
+    // Find user by email
+    const user = await authRepository.findUserByEmail(email);
+    if (!user) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Check account status
+    if (user.account_status !== 'ACTIVE') {
+      throw new Error(`Account is ${user.account_status.toLowerCase()}`);
+    }
+
+    // Compare passwords
+    const passwordMatch = await comparePassword(password, user.password_hash);
+    if (!passwordMatch) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Generate access token (JWT)
+    const accessToken = generateAccessToken(user.id, user.email, user.display_name);
+
+    // Generate refresh token (random string)
+    const { plainToken: refreshToken, hashedToken: refreshTokenHash } = generateRefreshToken();
+
+    // Store hashed refresh token in database
+    await authRepository.storeRefreshToken(user.id, refreshTokenHash);
+
+    // Update last login
+    await authRepository.updateLastLogin(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        display_name: user.display_name,
+        account_type: user.account_type,
+      },
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    throw error;
+  }
 };
 
-// TODO: Implement fetchUserProfile service
-// Purpose: Get user profile data by user ID
-// Input: user ID
-// Output: User profile data  
-const fetchUserProfile = async (userId) => {
-  // TODO: Find user by ID in database
-  // TODO: Return user data (exclude sensitive info like password)
+/**
+ * Refresh access token
+ * Validates refresh token, creates new access token
+ * @param {string} refreshToken - Plain refresh token from client
+ * @returns {Promise<Object>} { user, accessToken }
+ */
+const refreshAccessTokenService = async (refreshToken) => {
+  try {
+    if (!refreshToken) {
+      throw new Error('Refresh token is required');
+    }
+
+    // Hash the refresh token to look it up in database
+    const { hashPassword: crypto_hash } = require('crypto');
+    const crypto = require('crypto');
+    const hashedToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    // Find refresh token in database
+    const storedToken = await authRepository.findRefreshTokenByHash(hashedToken);
+    if (!storedToken) {
+      throw new Error('Invalid refresh token');
+    }
+
+    // Check if refresh token is expired
+    if (new Date() > storedToken.expires_at) {
+      // Delete expired token
+      await authRepository.deleteRefreshToken(hashedToken);
+      throw new Error('Refresh token has expired');
+    }
+
+    // Get user data
+    const user = await authRepository.findUserById(storedToken.user_id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check account status
+    if (user.account_status !== 'ACTIVE') {
+      throw new Error(`Account is ${user.account_status.toLowerCase()}`);
+    }
+
+    // Generate new access token
+    const accessToken = generateAccessToken(user.id, user.email, user.display_name);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        display_name: user.display_name,
+        account_type: user.account_type,
+      },
+      accessToken,
+    };
+  } catch (error) {
+    throw error;
+  }
 };
 
-// TODO: Implement updateUserProfileData service
-// Purpose: Update user profile information
-// Input: user ID, updated profile data
-// Output: Updated user profile
-const updateUserProfileData = async (userId, profileData) => {
-  // TODO: Validate input data
-  // TODO: Update user in database using Prisma
-  // TODO: Return updated user profile
-};
+/**
+ * Logout user
+ * Deletes refresh token from database
+ * @param {string} refreshToken - Plain refresh token from client
+ * @returns {Promise<Object>} { message }
+ */
+const logoutUserService = async (refreshToken) => {
+  try {
+    if (!refreshToken) {
+      throw new Error('Refresh token is required');
+    }
 
-// TODO: Implement updateUserPassword service
-// Purpose: Change user's password
-// Input: user ID, old password, new password
-// Output: Success message or error
-const updateUserPassword = async (userId, oldPassword, newPassword) => {
-  // TODO: Find user by ID
-  // TODO: Verify old password is correct
-  // TODO: Hash new password
-  // TODO: Update password in database
-  // TODO: Return success message
-};
+    // Hash the refresh token
+    const crypto = require('crypto');
+    const hashedToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-// TODO: Implement generateNewToken service
-// Purpose: Generate fresh JWT token
-// Input: user ID
-// Output: New JWT token
-const generateNewToken = async (userId) => {
-  // TODO: Find user by ID
-  // TODO: Create new JWT token with user data
-  // TODO: Return new token
-};
+    // Delete refresh token from database
+    await authRepository.deleteRefreshToken(hashedToken);
 
-// TODO: Implement invalidateUserToken service
-// Purpose: Logout user by invalidating token
-// Input: user ID, token
-// Output: Success message
-const invalidateUserToken = async (userId, token) => {
-  // TODO: Add token to blacklist (in cache or database)
-  // TODO: Return success message
+    return { message: 'Logout successful' };
+  } catch (error) {
+    throw error;
+  }
 };
 
 module.exports = {
-  registerNewUser,
-  authenticateUser,
-  fetchUserProfile,
-  updateUserProfileData,
-  updateUserPassword,
-  generateNewToken,
-  invalidateUserToken,
+  registerUserService,
+  loginUserService,
+  refreshAccessTokenService,
+  logoutUserService,
 };

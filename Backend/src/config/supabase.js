@@ -80,6 +80,7 @@ async function disconnectFromSupabase() {
  */
 function getPrismaClient() {
   if (!prismaInstance) {
+    console.error('❌ Prisma Client is not initialized');
     throw new Error('Prisma Client is not initialized. Call connectToSupabase() first.');
   }
   return prismaInstance;

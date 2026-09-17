@@ -7,7 +7,14 @@ datasource db {
   provider = "postgresql"
 }
 
-// user table (Auth table)
+
+// ============================================================
+// USER TABLE
+// ============================================================
+// Stores user account, authentication, profile, account status,
+// and KYC information. One user can have multiple
+// refresh-token sessions (for different devices/logins).
+// ============================================================
 
 model User {
   id             String        @id @default(uuid()) @db.Uuid
@@ -16,6 +23,7 @@ model User {
   full_name      String        @db.VarChar(150)
   display_name   String        @db.VarChar(50)
   account_status AccountStatus @default(ACTIVE)
+  account_type AccountType?
   phone          String?       @db.VarChar(20)
   avatar_url     String?       @db.VarChar(500)
   kyc_status     KycStatus     @default(NOT_STARTED)
@@ -24,9 +32,98 @@ model User {
   updated_at     DateTime      @updatedAt
   deleted_at     DateTime?
 
+  refresh_tokens RefreshToken[]
+  products       Product[]
+
   @@index([account_status])
   @@index([created_at])
 }
+
+
+// ============================================================
+// REFRESH TOKEN TABLE
+// ============================================================
+// Stores refresh-token sessions for users. Only the hashed
+// refresh token is stored in the database. Each login/device
+// creates a separate refresh-token record.
+// ============================================================
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  token_hash String   @unique @db.VarChar(64)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+}
+
+// ============================================================
+// CATEGORY TABLE
+// ============================================================
+// Stores product categories and their marketplace commission
+// configuration.
+// ============================================================
+
+model Category {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(100)
+  slug            String   @unique @db.VarChar(100)
+  display_order   Int
+  commission_rate Decimal  @db.Decimal(5, 2)
+  image_url       String?  @db.VarChar(500)
+
+  products Product[]
+
+  @@index([display_order])
+}
+
+
+// ============================================================
+// PRODUCT TABLE
+// ============================================================
+// Stores product information, seller ownership, category,
+// specifications, condition, and product images.
+// ============================================================
+
+model Product {
+  id             String          @id @default(uuid()) @db.Uuid
+  seller_id      String          @db.Uuid
+  title          String          @db.VarChar(200)
+  description    String?         @db.Text
+  detailed_specs Json?
+  category_id    String          @db.Uuid
+  condition      ProductCondition
+  images         Json
+
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  seller   User     @relation(fields: [seller_id], references: [id])
+  category Category @relation(fields: [category_id], references: [id])
+
+  @@index([seller_id])
+  @@index([category_id])
+  @@index([created_at])
+}
+
+
+// ============================================================
+// PRODUCT CONDITION
+// ============================================================
+
+enum ProductCondition {
+  NEW
+  USED
+  REFURBISHED
+}
+
+// ============================================================
+// ACCOUNT STATUS
+// ============================================================
 
 enum AccountStatus {
   ACTIVE
@@ -34,9 +131,19 @@ enum AccountStatus {
   BANNED
 }
 
+
+// ============================================================
+// KYC STATUS
+// ============================================================
+
 enum KycStatus {
   NOT_STARTED
   PENDING
   VERIFIED
   REJECTED
+}
+
+enum AccountType {
+  BIDDER
+  SELLER
 }

@@ -2,10 +2,17 @@ require('dotenv').config();
 const app = require('./app');
 const { connectToSupabase, disconnectFromSupabase } = require('./config/supabase');
 
+// ============================================
+// Configuration from Environment Variables
+// ============================================
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 async function startServer() {
   try {
+    console.log(`ℹ️  Environment: ${NODE_ENV}`);
+    console.log(`ℹ️  Server Port: ${PORT}`);
+
     // ============================================
     // Step 1: Connect to Supabase Database
     // ============================================

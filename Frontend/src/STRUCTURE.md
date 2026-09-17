@@ -4,95 +4,187 @@
 
 ```
 src/
-├── data/          # Dummy JSON files — stand-in for a real backend
-├── api/           # All data-fetching logic lives here, nowhere else
+├── api/           # All data-fetching logic and API calls
 ├── components/    # Small, reusable UI pieces (no pages, no routing)
 ├── pages/         # Full page views, one file per screen
-├── utils/         # Shared utility functions (time formatting, etc.)
-├── App.jsx        # Root component — sets up routing and fake-auth state
-└── main.jsx       # Entry point — mounts App into the DOM
+├── utils/         # Shared utility functions
+├── App.jsx        # Root component — sets up routing and auth state
+├── main.jsx       # Entry point — mounts App into the DOM
+└── STRUCTURE.md   # This file
 ```
 
 ---
 
 ## What Each Folder Is For
 
-### data/
-Raw dummy data in JSON format. Think of it as a fake database.
-- `auctions.json`   — auction listings (id, title, description, category, images, sellerId,
-                       startingPrice, currentBid, minBidIncrement, bidCount, startTime, endTime, status)
-- `bids.json`       — bids placed on auctions (id, auctionId, bidderId, bidderName, amount, placedAt)
-- `users.json`      — placeholder user accounts (unused in MVP flow)
-- `fakeUsers.json`  — demo accounts for fake login (id, name, email, password, role: "bidder"|"seller")
-
-Rule: nothing imports from here except files in `api/`.
-
 ### api/
-Functions that load or send data. Right now they read from `data/`.
-When a real backend exists, you only change these files — everything
-else in the project stays the same.
-- `auctionsApi.js` — getAuctions(), getAuctionById(id), createAuction(data)
-- `bidsApi.js`     — getBidsByAuctionId(auctionId), placeBid(auctionId, amount)
-- `usersApi.js`    — getFakeUsers(), findUserByCredentials(email, password)
+Functions that communicate with backend APIs. When backend exists, you only change these files.
 
-Rule: pages and components import from here, never from `data/` directly.
+**Files:**
+- `authApi.js` - Authentication API calls
+  - `registerUser(data)` - Register new user (email, password, full_name, display_name)
+  - `loginUser(data)` - Login user (email, password)
+  - `logoutUser()` - Logout user (invalidates refresh token)
+  - `refreshAccessToken()` - Get new access token when expired
+
+- `axiosInstance.js` - Axios instance with auto token refresh
+  - Intercepts 401 responses
+  - Automatically calls `/refresh-token` if access token expired
+  - Retries failed requests with new token
+  - Queues requests during token refresh to prevent race conditions
+  - Redirects to `/login` if refresh token invalid/expired
+
+- `auctionsApi.js` - Auction API calls (existing)
+- `bidsApi.js` - Bid API calls (existing)
+
+**Rule:** Pages and components import from here, never call backend directly.
 
 ### components/
-Small, focused UI pieces that don't represent a whole screen.
-- `Navbar.jsx`       — top nav bar; receives currentUser + onLogout as props
-- `AuctionCard.jsx`  — one auction displayed as a card; used by AuctionListPage
-- `BidForm.jsx`      — bid input + submit button (no-op in MVP); used by AuctionDetailPage
-- `BidHistory.jsx`   — list of bids on an auction; receives bids array as props
+Small, reusable UI pieces.
 
-Rule: components receive data as props and do not fetch anything themselves,
-except BidForm which calls bidsApi on submit (no-op in this phase).
+**Files:**
+- `Navbar.jsx` - Navigation bar
+  - Shows "Login" and "Register" buttons if not authenticated
+  - Shows "Welcome, {name}!" and "Logout" button if authenticated
+  - Receives `currentUser` and `onLogout` as props
+
+- Other existing components remain unchanged
 
 ### pages/
-One file per screen. Pages fetch their own data via api/ and pass it to components.
-- `LoginPage.jsx`         — fake login; reads fakeUsers via usersApi, routes by role
-- `AuctionListPage.jsx`   — bidder home: grid of AuctionCards from auctionsApi
-- `AuctionDetailPage.jsx` — full auction view: description + BidForm + BidHistory
-- `CreateAuctionPage.jsx` — seller form to list an auction; createAuction is no-op in MVP
+One file per screen.
+
+**Files:**
+- `LoginPage.jsx` - User login
+  - Form with email and password
+  - Calls `loginUser()` API
+  - On success, calls `onLoginSuccess(user)`
+  - Validates required fields client-side
+
+- `RegisterPage.jsx` - User registration
+  - Form with email, password, full name, display name
+  - Client-side password validation (8+ chars, uppercase, lowercase, number, special char)
+  - Confirms password matches
+  - Calls `registerUser()` API
+  - On success, calls `onLoginSuccess(user)`
+  - Shows field-level error messages
+
+- Existing pages remain unchanged
 
 ### utils/
-Pure helper functions with no side effects.
-- `time.js` — formatTimeLeft(isoString), formatDateTime(isoString)
+Pure helper functions (existing).
 
 ---
 
-## Fake Login & Role Routing
+## Authentication Flow
 
-`src/data/fakeUsers.json` holds three demo accounts:
+### On App Load:
+1. App checks `localStorage` for stored user data
+2. If user exists, set as `currentUser`
+3. If not, show empty home page with login/register buttons
 
-| Name          | Email           | Password    | Role   |
-|---------------|-----------------|-------------|--------|
-| Alice Chen    | alice@demo.com  | seller123   | seller |
-| Bob Martinez  | bob@demo.com    | bidder123   | bidder |
-| Sara Kim      | sara@demo.com   | bidder456   | bidder |
+### Registration Flow:
+1. User fills RegisterPage form
+2. Frontend validates: email format, password strength, fields required
+3. Submit calls `registerUser()` from authApi.js
+4. Backend creates user, returns user + access token
+5. Frontend stores user in state + localStorage
+6. Axios automatically stores token in cookies (via `withCredentials`)
+7. Redirect to home page
 
-After login, `App.jsx` routes:
-- **seller** → `/seller` (CreateAuctionPage)
-- **bidder** → `/auctions` (AuctionListPage)
+### Login Flow:
+1. User fills LoginPage form
+2. Frontend validates: email, password required
+3. Submit calls `loginUser()` from authApi.js
+4. Backend authenticates, returns user + access token
+5. Frontend stores user in state + localStorage
+6. Axios stores token in cookies
+7. Redirect to home page
 
-No real auth, no session persistence — role lives in React state only.
+### Logout Flow:
+1. User clicks "Logout" button in Navbar
+2. Call `logoutUser()` from authApi.js
+3. Backend invalidates refresh token in database
+4. Frontend clears user from state + localStorage
+5. Redirect to home page
+
+### Access Token Expiration (Auto-Refresh):
+1. Frontend makes API request with access token (in cookies)
+2. Backend returns 401 + `code: TOKEN_EXPIRED`
+3. **axiosInstance interceptor** automatically:
+   - Calls `POST /api/auth/refresh-token`
+   - Gets new access token
+   - Retries original request with new token
+4. If refresh fails, redirect to login page
+5. User doesn't notice anything - happens silently
 
 ---
 
-## Data Flow
+## State Management
+
+**App.jsx** manages:
+- `currentUser` - Logged-in user object or null
+- `isLoading` - Initial load state
+
+**User data persisted in:**
+- **State** - For component access
+- **localStorage** - For page refresh persistence
+- **Cookies** - Tokens managed by axios (httpOnly cookies from backend)
+
+**Token refresh handled by:**
+- **axios interceptor** (axiosInstance.js) - Auto refresh on 401
+
+---
+
+## Protected Routes
 
 ```
-src/data/auctions.json
-        ↓  (imported here only)
-src/api/auctionsApi.js   ← exports getAuctions(), getAuctionById()
-        ↓  (called here)
-src/pages/AuctionListPage.jsx   ← calls getAuctions(), stores in state
-        ↓  (passed as props)
-src/components/AuctionCard.jsx  ← receives one auction object, renders it
+/login              → Public (redirect if already logged in)
+/register           → Public (redirect if already logged in)
+/                   → Home (shows different content if logged in)
+/auctions           → Protected (redirect to login if not logged in)
+/auction/:id        → Protected
+/seller             → Protected
 ```
 
-When we add a real backend:
-- Only files in `src/api/` change (swap JSON import for fetch/axios calls).
-- Pages and components are untouched.
+---
+
+## API Integration Points
+
+### authApi.js:
+```javascript
+import axiosInstance from './axiosInstance';
+
+registerUser({ email, password, full_name, display_name })
+  ↓
+axiosInstance.post('/api/auth/register', data)
+  ↓
+Backend creates user + returns tokens
+
+loginUser({ email, password })
+  ↓
+axiosInstance.post('/api/auth/login', data)
+  ↓
+Backend authenticates + returns tokens
+
+logoutUser()
+  ↓
+axiosInstance.post('/api/auth/logout', {})
+  ↓
+Backend invalidates refresh token
+```
+
+### axiosInstance.js Interceptors:
+```
+Response 401 (TOKEN_EXPIRED)
+  ↓
+Call POST /api/auth/refresh-token
+  ↓
+Get new access token
+  ↓
+Retry original request
+  ↓
+If refresh fails → redirect to /login
+```
 
 ---
 
@@ -100,9 +192,71 @@ When we add a real backend:
 
 | Thing          | Convention          | Example                  |
 |----------------|---------------------|--------------------------|
-| Pages          | PascalCase + "Page" | AuctionDetailPage.jsx    |
-| Components     | PascalCase          | AuctionCard.jsx          |
-| CSS Modules    | Same name + .module | AuctionCard.module.css   |
-| API files      | camelCase + "Api"   | auctionsApi.js           |
-| JSON data      | lowercase plural    | auctions.json            |
-| Utilities      | camelCase           | time.js                  |
+| Pages          | PascalCase + "Page" | LoginPage.jsx            |
+| Components     | PascalCase          | Navbar.jsx               |
+| CSS Modules    | Same name + .css    | Navbar.css               |
+| API files      | camelCase + "Api"   | authApi.js               |
+| Utilities      | camelCase           | axiosInstance.js         |
+
+---
+
+## Data Flow Diagram
+
+```
+User Registration/Login
+        ↓
+RegisterPage.jsx / LoginPage.jsx
+        ↓
+authApi.js (registerUser / loginUser)
+        ↓
+axiosInstance.js
+        ↓
+Backend API (POST /auth/register or /auth/login)
+        ↓
+Tokens in cookies + User data returned
+        ↓
+Frontend stores user in state + localStorage
+        ↓
+Navbar shows "Welcome, {user}!"
+
+Later API Request with Expired Token
+        ↓
+Any Component calls API
+        ↓
+axiosInstance.js interceptor detects 401
+        ↓
+Auto calls POST /auth/refresh-token
+        ↓
+New token returned
+        ↓
+Original request retried
+        ↓
+Response success
+```
+
+---
+
+## Environment Variables
+
+Add to `.env` or `.env.local`:
+```
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+(Currently hardcoded in authApi.js, but can be extracted later)
+
+---
+
+## Key Features Implemented
+
+✅ Real backend authentication (not fake login)
+✅ Register with email, password, name
+✅ Login with email, password
+✅ Logout with backend token invalidation
+✅ Automatic token refresh on expiration
+✅ Password strength validation (frontend)
+✅ User persistence (localStorage + cookies)
+✅ Protected routes
+✅ Navbar shows different content based on auth state
+✅ Clean separation: API layer, Components, Pages
+✅ Error handling with user-friendly messages

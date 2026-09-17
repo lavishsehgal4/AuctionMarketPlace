@@ -1,106 +1,140 @@
-// Login page — fake credential login using fakeUsers.json.
-// No real auth; matches email+password against dummy data and routes by role.
-// Used by: src/App.jsx
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { loginUser } from '../api/authApi';
+import './LoginPage.css';
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getFakeUsers, findUserByCredentials } from '../api/usersApi';
-import styles from './LoginPage.module.css';
+// ============================================
+// Login Page
+// ============================================
+// User login with email and password
+// Connects to backend auth API
+// ============================================
 
-export default function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [fakeUsers, setFakeUsers] = useState([]);
+function LoginPage({ onLoginSuccess }) {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    getFakeUsers().then(setFakeUsers);
-  }, []);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setError(''); // Clear error on input change
+  };
 
-  async function handleSubmit(e) {
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const user = await findUserByCredentials(email, password);
-    if (!user) {
-      setError('Invalid email or password. Try one of the demo accounts below.');
-      return;
-    }
-    onLogin(user);
-    navigate(user.role === 'seller' ? '/seller' : '/auctions');
-  }
+    setIsLoading(true);
 
-  function fillAccount(user) {
-    setEmail(user.email);
-    setPassword(user.password);
-    setError('');
-  }
+    try {
+      // Validate inputs
+      if (!formData.email || !formData.password) {
+        setError('Email and password are required');
+        setIsLoading(false);
+        return;
+      }
+
+      // Call login API
+      const result = await loginUser({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // Success - call parent callback
+      onLoginSuccess(result.user);
+
+      // Redirect to home
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <span className={styles.icon} aria-hidden="true">🏷️</span>
-          <h1 className={styles.title}>Sign in to BidVault</h1>
-          <p className={styles.subtitle}>Use a demo account below to explore the app.</p>
-        </div>
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-card">
+          <h1 className="login-title">Login</h1>
+          <p className="login-subtitle">Sign in to your account</p>
 
-        {/* Demo accounts hint */}
-        <div className={styles.demoBox} aria-label="Available demo accounts">
-          <p className={styles.demoLabel}>Demo accounts — click to fill:</p>
-          <div className={styles.demoList}>
-            {fakeUsers.map((u) => (
-              <button
-                key={u.id}
-                type="button"
-                className={`${styles.demoChip} ${styles[u.role]}`}
-                onClick={() => fillAccount(u)}
-                aria-label={`Fill credentials for ${u.name} (${u.role})`}
-              >
-                <span className={styles.chipRole}>{u.role}</span>
-                <span className={styles.chipName}>{u.name}</span>
-                <span className={styles.chipEmail}>{u.email}</span>
-              </button>
-            ))}
+          {error && <div className="error-message">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="login-form">
+            {/* Email Input */}
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="you@example.com"
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Password Input with Show/Hide Toggle */}
+            <div className="form-group">
+              <div className="password-label-container">
+                <label htmlFor="password">Password</label>
+                <button
+                  type="button"
+                  className="toggle-password-btn"
+                  onClick={toggleShowPassword}
+                  disabled={isLoading}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '👁️ Hide' : '👁️ Show'}
+                </button>
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="login-btn"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+
+          {/* Register Link */}
+          <div className="auth-link">
+            <p>
+              Don't have an account?{' '}
+              <Link to="/register">Register here</Link>
+            </p>
           </div>
         </div>
-
-        <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <div className={styles.field}>
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. alice@demo.com"
-              required
-              autoComplete="email"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="e.g. seller123"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          {error && (
-            <p className={styles.error} role="alert">{error}</p>
-          )}
-
-          <button type="submit" className={`btn-primary ${styles.submitBtn}`}>
-            Sign in
-          </button>
-        </form>
       </div>
-    </main>
+    </div>
   );
 }
+
+export default LoginPage;

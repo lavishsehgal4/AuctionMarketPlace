@@ -1,57 +1,90 @@
+const { verifyAccessToken, extractTokenFromHeader } = require('../utils/jwt');
+
 // ============================================
 // Auth Middleware
 // ============================================
-// This file will contain authentication
-// related middleware functions. These are
-// used to verify JWT tokens, check user
-// permissions, and validate authentication.
+// Middleware for protecting routes and validating tokens
 // ============================================
 
-// TODO: Implement verifyToken middleware
-// Purpose: Check if request has valid JWT token
-// Usage: Applied to private/protected routes
-const verifyToken = (req, res, next) => {
-  // TODO: Extract token from request headers (Authorization header)
-  // TODO: Verify token signature and expiration
-  // TODO: Decode token to extract user data
-  // TODO: Attach user info to req.user
-  // TODO: Call next() if valid, send error if invalid
+/**
+ * Verify Access Token Middleware
+ * Extracts and verifies JWT from Authorization header
+ * Attaches user data to request object if valid
+ * @middleware
+ */
+const verifyAccessTokenMiddleware = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authorization header missing',
+      });
+    }
+
+    // Extract token from "Bearer token" format
+    const token = extractTokenFromHeader(authHeader);
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authorization header format. Use: Bearer <token>',
+      });
+    }
+
+    // Verify token
+    const decoded = verifyAccessToken(token);
+
+    // Attach user data to request
+    req.user = decoded;
+
+    next();
+  } catch (error) {
+    // Check if it's a token expiration error
+    if (error.message.includes('expired')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access token expired',
+        code: 'TOKEN_EXPIRED',
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid access token',
+    });
+  }
 };
 
-// TODO: Implement checkUserRole middleware
-// Purpose: Verify user has required role/permissions
-// Usage: Applied to role-based protected routes
-const checkUserRole = (requiredRole) => {
-  return (req, res, next) => {
-    // TODO: Check if req.user exists (from verifyToken)
-    // TODO: Compare user's role with requiredRole
-    // TODO: Call next() if authorized, send error if not
-  };
-};
+/**
+ * Extract Refresh Token from Cookies Middleware
+ * Extracts refresh token from cookies and attaches to request
+ * @middleware
+ */
+const extractRefreshTokenFromCookie = (req, res, next) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
 
-// TODO: Implement validateAuthInput middleware
-// Purpose: Validate authentication request body
-// Usage: Applied to registration and login routes
-const validateAuthInput = (req, res, next) => {
-  // TODO: Validate email format
-  // TODO: Validate password strength
-  // TODO: Check for required fields
-  // TODO: Call next() if valid, send validation errors if invalid
-};
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token not found in cookies',
+      });
+    }
 
-// TODO: Implement rateLimitAuth middleware
-// Purpose: Limit login/registration attempts to prevent brute force
-// Usage: Applied to login and registration routes
-const rateLimitAuth = (req, res, next) => {
-  // TODO: Track login attempts by IP address
-  // TODO: Allow limited attempts per time window
-  // TODO: Block if too many attempts
-  // TODO: Call next() if within limits
+    // Attach refresh token to request
+    req.refreshToken = refreshToken;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Failed to extract refresh token',
+    });
+  }
 };
 
 module.exports = {
-  verifyToken,
-  checkUserRole,
-  validateAuthInput,
-  rateLimitAuth,
+  verifyAccessTokenMiddleware,
+  extractRefreshTokenFromCookie,
 };

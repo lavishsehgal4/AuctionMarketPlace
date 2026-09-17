@@ -1,6 +1,6 @@
 const express = require('express');
 const authController = require('./auth.controller');
-const authMiddleware = require('./auth.middleware');
+const { verifyAccessTokenMiddleware, extractRefreshTokenFromCookie } = require('./auth.middleware');
 
 const router = express.Router();
 
@@ -8,39 +8,43 @@ const router = express.Router();
 // Authentication Routes
 // ============================================
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
-router.post('/register', authController.registerUser);
+/**
+ * @route   POST /api/auth/register
+ * @desc    Register new user
+ * @access  Public
+ * @body    { email, password, full_name, display_name }
+ * @returns { success, message, data: { user } }
+ * @cookies Sets accessToken and refreshToken
+ */
+router.post('/register', authController.registerUserController);
 
-// @route   POST /api/auth/login
-// @desc    Login user and return JWT token
-// @access  Public
-router.post('/login', authController.loginUser);
+/**
+ * @route   POST /api/auth/login
+ * @desc    Login user with email and password
+ * @access  Public
+ * @body    { email, password }
+ * @returns { success, message, data: { user } }
+ * @cookies Sets accessToken and refreshToken
+ */
+router.post('/login', authController.loginUserController);
 
-// @route   POST /api/auth/logout
-// @desc    Logout user (invalidate token)
-// @access  Private
-router.post('/logout', authMiddleware.verifyToken, authController.logoutUser);
+/**
+ * @route   POST /api/auth/refresh-token
+ * @desc    Get new access token using refresh token
+ * @access  Private (requires refresh token in cookies)
+ * @cookies Requires refreshToken, sets new accessToken
+ * @returns { success, message, data: { user } }
+ * @note    Called when access token expires (frontend sends 401 to trigger this)
+ */
+router.post('/refresh-token', extractRefreshTokenFromCookie, authController.refreshAccessTokenController);
 
-// @route   GET /api/auth/profile
-// @desc    Get current authenticated user's profile
-// @access  Private
-router.get('/profile', authMiddleware.verifyToken, authController.getCurrentUserProfile);
-
-// @route   POST /api/auth/refresh-token
-// @desc    Refresh JWT token
-// @access  Private
-router.post('/refresh-token', authMiddleware.verifyToken, authController.refreshAuthToken);
-
-// @route   PUT /api/auth/update-profile
-// @desc    Update user profile information
-// @access  Private
-router.put('/update-profile', authMiddleware.verifyToken, authController.updateUserProfile);
-
-// @route   POST /api/auth/change-password
-// @desc    Change user password
-// @access  Private
-router.post('/change-password', authMiddleware.verifyToken, authController.changeUserPassword);
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout user and invalidate refresh token
+ * @access  Private (requires refresh token in cookies)
+ * @cookies Clears accessToken and refreshToken
+ * @returns { success, message }
+ */
+router.post('/logout', extractRefreshTokenFromCookie, authController.logoutUserController);
 
 module.exports = router;

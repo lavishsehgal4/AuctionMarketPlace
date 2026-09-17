@@ -1,39 +1,56 @@
-// Top navigation bar — logo/brand on the left, login/user info on the right.
-// Receives currentUser and onLogout as props; no internal state.
-// Used by: src/App.jsx
+import { Link, useNavigate } from 'react-router-dom';
+import './Navbar.css';
 
-import { Link } from 'react-router-dom';
-import styles from './Navbar.module.css';
+// ============================================
+// Navbar Component
+// ============================================
+// Shows login/register buttons if not authenticated
+// Shows welcome message + logout button if authenticated
+// ============================================
 
-export default function Navbar({ currentUser, onLogout }) {
+function Navbar({ currentUser, onLogout }) {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await onLogout();
+    navigate('/');
+  };
+
   return (
-    <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
-      <div className={styles.inner}>
-        <Link to="/" className={styles.brand} aria-label="BidVault home">
-          <span className={styles.brandIcon} aria-hidden="true">🏷️</span>
-          <span className={styles.brandName}>BidVault</span>
+    <nav className="navbar">
+      <div className="navbar-container">
+        {/* Logo/Brand */}
+        <Link to="/" className="navbar-brand">
+          🏆 AuctionMarketPlace
         </Link>
 
-        <div className={styles.actions}>
+        {/* Nav Links */}
+        <div className="navbar-links">
           {currentUser ? (
-            <>
-              <span className={styles.greeting}>
-                Hi, <strong>{currentUser.name.split(' ')[0]}</strong>
-                <span className={`${styles.roleBadge} ${styles[currentUser.role]}`}>
-                  {currentUser.role}
-                </span>
+            // Authenticated User
+            <div className="navbar-authenticated">
+              <span className="welcome-text">
+                Welcome, <strong>{currentUser.display_name}</strong>!
               </span>
-              <button className="btn-outline" onClick={onLogout}>
-                Log out
+              <button onClick={handleLogout} className="logout-btn">
+                Logout
               </button>
-            </>
+            </div>
           ) : (
-            <Link to="/login" className="btn-primary">
-              Login
-            </Link>
+            // Not Authenticated
+            <div className="navbar-unauthenticated">
+              <Link to="/login" className="nav-link">
+                Login
+              </Link>
+              <Link to="/register" className="nav-link register-link">
+                Register
+              </Link>
+            </div>
           )}
         </div>
       </div>
     </nav>
   );
 }
+
+export default Navbar;

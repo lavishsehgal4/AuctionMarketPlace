@@ -1,0 +1,121 @@
+/* ============================================ */
+/* Navbar Styles */
+/* ============================================ */
+
+.navbar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Brand/Logo */
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  transition: transform 0.3s ease;
+}
+
+.navbar-brand:hover {
+  transform: scale(1.05);
+}
+
+/* Links Container */
+.navbar-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+/* Unauthenticated State */
+.navbar-unauthenticated {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.register-link {
+  background: white;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.register-link:hover {
+  background: #f0f0f0;
+}
+
+/* Authenticated State */
+.navbar-authenticated {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.welcome-text {
+  color: white;
+  font-size: 0.95rem;
+}
+
+.welcome-text strong {
+  font-weight: 600;
+}
+
+.logout-btn {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .navbar-links {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .welcome-text {
+    font-size: 0.85rem;
+  }
+}
