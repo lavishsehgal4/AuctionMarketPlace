@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
 // ============================================
@@ -19,25 +19,31 @@ function Navbar({ currentUser, onLogout }) {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        {/* Logo/Brand */}
         <Link to="/" className="navbar-brand">
-          🏆 AuctionMarketPlace
+          AuctionMarketPlace
         </Link>
 
-        {/* Nav Links */}
         <div className="navbar-links">
           {currentUser ? (
-            // Authenticated User
             <div className="navbar-authenticated">
-              <span className="welcome-text">
-                Welcome, <strong>{currentUser.display_name}</strong>!
-              </span>
+              {currentUser.account_type === 'BIDDER' && (
+                <NavLink to="/" className="nav-link">Browse auctions</NavLink>
+              )}
+              {currentUser.account_type === 'SELLER' && (
+                <>
+                  <a href="/seller#dashboard" className="nav-link">Dashboard</a>
+                  <a href="/seller#products" className="nav-link">My Products</a>
+                  <a href="/seller#create-product" className="nav-link">Create Product</a>
+                  <a href="/seller#auctions" className="nav-link">My Auctions</a>
+                  <a href="/seller#profile" className="nav-link">Profile</a>
+                </>
+              )}
+              <span className="welcome-text">{currentUser.display_name}</span>
               <button onClick={handleLogout} className="logout-btn">
                 Logout
               </button>
             </div>
           ) : (
-            // Not Authenticated
             <div className="navbar-unauthenticated">
               <Link to="/login" className="nav-link">
                 Login

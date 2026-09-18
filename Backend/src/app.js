@@ -24,7 +24,7 @@ const app = express();
 const corsOptions = {
   origin: 'http://localhost:5173', // Frontend URL (Vite default)
   credentials: true, // Allow cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 

@@ -2,25 +2,25 @@
 
 :root {
   /* Palette */
-  --primary: #4338ca;         /* deep indigo — buttons, links, highlights */
-  --primary-dark: #3730a3;
-  --primary-light: #e0e7ff;
-  --cta: #f97316;             /* warm amber/coral — Place Bid, primary CTAs */
-  --cta-dark: #ea6c0a;
-  --bg: #f8f7f5;              /* warm off-white background */
+  --primary: #28594b;
+  --primary-dark: #183b3a;
+  --primary-light: #e1ece4;
+  --cta: #d96f2b;
+  --cta-dark: #a5471b;
+  --bg: #f5f4ed;
   --surface: #ffffff;         /* card / panel surfaces */
   --border: #e5e7eb;
-  --text: #374151;            /* dark gray body text */
-  --text-light: #6b7280;
-  --text-h: #111827;          /* near-black headings */
+  --text: #35473f;
+  --text-light: #63746a;
+  --text-h: #183b3a;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --radius: 8px;
+  --radius-sm: 4px;
 
   /* Typography */
-  --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: 'Trebuchet MS', 'Segoe UI', sans-serif;
 
   font-family: var(--sans);
   font-size: 16px;
@@ -39,6 +39,10 @@
 body {
   min-height: 100vh;
   background: var(--bg);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 #root {
@@ -131,7 +135,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(67,56,202,0.12);
+  box-shadow: 0 0 0 3px rgba(40,89,75,0.12);
 }
 
 label {

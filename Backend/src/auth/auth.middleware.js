@@ -16,15 +16,9 @@ const AppError = require('../errors/AppError');
 const verifyAccessTokenMiddleware = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      throw new AppError('Authorization header missing', 401, 'AUTHENTICATION_REQUIRED');
-    }
-
-    // Extract token from "Bearer token" format
-    const token = extractTokenFromHeader(authHeader);
+    const token = req.cookies?.accessToken || extractTokenFromHeader(authHeader);
     if (!token) {
-      throw new AppError('Invalid authorization header format. Use: Bearer <token>', 401, 'INVALID_ACCESS_TOKEN');
+      throw new AppError('Access token is required', 401, 'AUTHENTICATION_REQUIRED');
     }
 
     // Verify token

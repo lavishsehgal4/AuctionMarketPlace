@@ -6,7 +6,7 @@ import axiosInstance from './axiosInstance';
 // All authentication API calls to backend
 // ============================================
 
-const API_BASE = 'http://localhost:3000/api/auth';
+const API_BASE = '/api/v1/auth';
 
 /**
  * Register new user
@@ -45,7 +45,7 @@ export const logoutUser = async () => {
   try {
     const response = await axiosInstance.post(`${API_BASE}/logout`);
     return response.data;
-  } catch (error) {
+  } catch {
     // Even if logout fails, we'll clear frontend auth
     return { message: 'Logout completed' };
   }

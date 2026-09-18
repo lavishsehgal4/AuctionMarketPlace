@@ -12,15 +12,21 @@ const createAuctionController = asyncHandler(async (req, res) => {
 });
 
 const getAuctionsController = asyncHandler(async (req, res) => {
-	const auctions = await auctionService.getAuctionsService();
+	const result = await auctionService.getAuctionsService(req.query);
 
-	res.status(200).json({ success: true, data: { auctions } });
+	res.status(200).json({ success: true, data: result });
 });
 
 const getMyAuctionsController = asyncHandler(async (req, res) => {
-	const auctions = await auctionService.getMyAuctionsService(req.user.userId);
+	const result = await auctionService.getMyAuctionsService(req.user.userId, req.query);
 
-	res.status(200).json({ success: true, data: { auctions } });
+	res.status(200).json({ success: true, data: result });
+});
+
+const getMyAuctionDetailController = asyncHandler(async (req, res) => {
+	const auction = await auctionService.getMyAuctionDetailService(req.user.userId, req.params.auctionId);
+
+	res.status(200).json({ success: true, data: { auction } });
 });
 
 const getAuctionController = asyncHandler(async (req, res) => {
@@ -43,6 +49,7 @@ module.exports = {
 	createAuctionController,
 	getAuctionsController,
 	getMyAuctionsController,
+	getMyAuctionDetailController,
 	getAuctionController,
 	cancelAuctionController,
 };

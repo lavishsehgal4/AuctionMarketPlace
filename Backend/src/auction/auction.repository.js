@@ -30,6 +30,42 @@ const auctionSelection = {
 	},
 };
 
+const sellerAuctionListSelection = {
+	id: true,
+	status: true,
+	starting_price: true,
+	current_bid: true,
+	end_time: true,
+	product: {
+		select: {
+			title: true,
+			images: true,
+			condition: true,
+			category: { select: { name: true } },
+		},
+	},
+	_count: { select: { bids: true } },
+};
+
+const publicAuctionListSelection = {
+	id: true,
+	status: true,
+	starting_price: true,
+	current_bid: true,
+	min_bid_increment: true,
+	start_time: true,
+	end_time: true,
+	product: {
+		select: {
+			title: true,
+			images: true,
+			condition: true,
+			category: { select: { id: true, name: true } },
+		},
+	},
+	_count: { select: { bids: true } },
+};
+
 const findOwnedProductWithoutAuction = (productId, sellerId) => getPrismaClient().product.findFirst({
 	where: {
 		id: productId,
@@ -49,16 +85,35 @@ const findAuctionById = (auctionId) => getPrismaClient().auction.findUnique({
 	select: auctionSelection,
 });
 
-const findAuctions = () => getPrismaClient().auction.findMany({
-	where: { status: { in: ['SCHEDULED', 'ACTIVE'] } },
-	select: auctionSelection,
-	orderBy: { start_time: 'asc' },
+const findPublicAuctionList = (where, orderBy, skip, take) => getPrismaClient().auction.findMany({
+	where,
+	select: publicAuctionListSelection,
+	orderBy,
+	skip,
+	take,
 });
 
-const findAuctionsBySellerId = (sellerId) => getPrismaClient().auction.findMany({
+const countPublicAuctions = (where) => getPrismaClient().auction.count({ where });
+
+const findSellerAuctionList = (where, orderBy, skip, take) => getPrismaClient().auction.findMany({
+	where,
+	select: sellerAuctionListSelection,
+	orderBy,
+	skip,
+	take,
+});
+
+const countSellerAuctions = (where) => getPrismaClient().auction.count({ where });
+
+const countSellerAuctionsByStatus = (sellerId) => getPrismaClient().auction.groupBy({
+	by: ['status'],
 	where: { seller_id: sellerId },
+	_count: { _all: true },
+});
+
+const findAuctionDetailBySellerId = (auctionId, sellerId) => getPrismaClient().auction.findFirst({
+	where: { id: auctionId, seller_id: sellerId },
 	select: auctionSelection,
-	orderBy: { created_at: 'desc' },
 });
 
 const findOwnedAuctionById = (auctionId, sellerId) => getPrismaClient().auction.findFirst({
@@ -76,8 +131,12 @@ module.exports = {
 	findOwnedProductWithoutAuction,
 	createAuction,
 	findAuctionById,
-	findAuctions,
-	findAuctionsBySellerId,
+	findPublicAuctionList,
+	countPublicAuctions,
+	findSellerAuctionList,
+	countSellerAuctions,
+	countSellerAuctionsByStatus,
+	findAuctionDetailBySellerId,
 	findOwnedAuctionById,
 	cancelAuction,
 };

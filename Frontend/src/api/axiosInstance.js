@@ -59,7 +59,7 @@ axiosInstance.interceptors.response.use(
 
         try {
           // Call refresh token endpoint
-          const response = await axios.post('http://localhost:3000/api/auth/refresh-token', {}, {
+          await axios.post('http://localhost:3000/api/v1/auth/refresh-token', {}, {
             withCredentials: true,
           });
 

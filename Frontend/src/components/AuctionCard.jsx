@@ -3,55 +3,58 @@
 // Used by: src/pages/AuctionListPage.jsx
 
 import { Link } from 'react-router-dom';
-import { formatTimeLeft } from '../utils/time';
+import { formatDateTime, formatTimeLeft } from '../utils/time';
 import styles from './AuctionCard.module.css';
 
-export default function AuctionCard({ auction }) {
+export default function AuctionCard({ auction, currentUser }) {
   const {
     id,
-    title,
-    images,
-    currentBid,
-    bidCount,
-    endTime,
-    category,
+    status,
+    starting_price: startingPrice,
+    current_bid: currentBid,
+    bid_count: bidCount,
+    start_time: startTime,
+    end_time: endTime,
+    product,
   } = auction;
-
-  const timeLeft = formatTimeLeft(endTime);
+  const isLive = status === 'ACTIVE';
+  const price = isLive ? currentBid : startingPrice;
+  const timeLabel = isLive ? formatTimeLeft(endTime) : `Opens ${formatDateTime(startTime)}`;
+  const actionLabel = isLive ? (currentUser ? 'View Auction' : 'Sign in to bid') : 'View Auction';
 
   return (
-    <Link to={`/auction/${id}`} className={styles.card} aria-label={`View auction: ${title}`}>
+    <Link to={`/auction/${id}`} className={styles.card} aria-label={`View auction: ${product.title}`}>
       <div className={styles.imageWrap}>
         <img
-          src={images[0]}
-          alt={title}
+          src={product.image_url || ''}
+          alt={product.title}
           className={styles.image}
           loading="lazy"
         />
-        <span className={styles.category}>{category}</span>
+        <span className={styles.category}>{product.category_name}</span>
       </div>
 
       <div className={styles.body}>
-        <h3 className={styles.title}>{title}</h3>
+        <h3 className={styles.title}>{product.title}</h3>
 
         <div className={styles.meta}>
           <div className={styles.bidBlock}>
-            <span className={styles.bidLabel}>Current bid</span>
-            <span className={styles.bidAmount}>${currentBid.toLocaleString()}</span>
+            <span className={styles.bidLabel}>{isLive ? 'Current bid' : 'Starting price'}</span>
+            <span className={styles.bidAmount}>${Number(price).toLocaleString()}</span>
           </div>
           <div className={styles.stats}>
             <span className={styles.statItem}>
-              <span aria-hidden="true">🔨</span> {bidCount} bid{bidCount !== 1 ? 's' : ''}
+              {bidCount} bid{bidCount !== 1 ? 's' : ''}
             </span>
             <span className={`${styles.statItem} ${styles.timer}`}>
-              <span aria-hidden="true">⏱</span> {timeLeft}
+              {timeLabel}
             </span>
           </div>
         </div>
 
         <div className={styles.cta}>
           <span className="btn-cta" style={{ fontSize: '14px', padding: '8px 18px' }}>
-            Place Bid
+            {actionLabel}
           </span>
         </div>
       </div>

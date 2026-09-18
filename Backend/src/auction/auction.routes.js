@@ -17,6 +17,13 @@ router.post(
 
 router.get('/my-auctions', ...sellerOnly, auctionController.getMyAuctionsController);
 
+router.get(
+	'/my-auctions/:auctionId',
+	...sellerOnly,
+	validateRequest({ params: ['auctionId'] }),
+	auctionController.getMyAuctionDetailController,
+);
+
 router.get('/', auctionController.getAuctionsController);
 
 router.get(
