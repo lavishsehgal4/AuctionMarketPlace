@@ -3,21 +3,45 @@
 // Used by: src/pages/AuctionDetailPage.jsx
 
 import { useState } from 'react';
+import socket from '../api/socket';
 import styles from './BidForm.module.css';
 
-export default function BidForm({ auction }) {
-  const { currentBid, minBidIncrement } = auction;
-  const minNext = currentBid + minBidIncrement;
+export default function BidForm({ auction, onBidPlaced }) {
+  const { currentBid, startingPrice, minBidIncrement } = auction;
+  const minNext = (currentBid > 0 ? currentBid : startingPrice) + minBidIncrement;
 
   const [amount, setAmount] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  function submitBid(value) {
+    const bidAmount = Number(value);
+    setError('');
+    if (!socket.connected) {
+      setError('Auction connection is unavailable. Please wait and try again.');
+      return;
+    }
+
+    socket.emit('placeBid', { auctionId: auction.id, amount: bidAmount }, (result) => {
+      if (!result?.success) {
+        setError(result?.message || 'Unable to place bid.');
+        return;
+      }
+
+      setSubmitted(true);
+      setAmount('');
+      onBidPlaced?.(result);
+      window.setTimeout(() => setSubmitted(false), 3000);
+    });
+  }
 
   function handleSubmit(e) {
     e.preventDefault();
-    // MVP: no real submission — just show confirmation state
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
-    setAmount('');
+    submitBid(amount);
+  }
+
+  function submitMinimumBid() {
+    submitBid(minNext);
   }
 
   return (
@@ -37,7 +61,7 @@ export default function BidForm({ auction }) {
 
       {submitted ? (
         <div className={styles.success} role="status">
-          ✅ Bid submitted! (This is a demo — no real bid was placed.)
+          Bid accepted. You are now the highest bidder.
         </div>
       ) : (
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
@@ -57,12 +81,16 @@ export default function BidForm({ auction }) {
           <p className={styles.hint}>
             Enter ${minNext.toLocaleString()} or more to outbid the current leader.
           </p>
+          <button type="button" className={styles.quickBid} onClick={submitMinimumBid}>
+            Bid ${minNext.toLocaleString()} now
+          </button>
           <button type="submit" className={`btn-cta ${styles.submitBtn}`}>
             🔨 Place Bid
           </button>
           <button type="button" className={`btn-outline ${styles.watchBtn}`}>
             ♡ Watch this auction
           </button>
+          {error ? <p className={styles.error} role="alert">{error}</p> : null}
         </form>
       )}
     </div>

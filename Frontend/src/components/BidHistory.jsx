@@ -21,11 +21,13 @@ export default function BidHistory({ bids }) {
     <div className={styles.wrap}>
       <h3 className={styles.heading}>Bid history</h3>
       <ul className={styles.list} aria-label="Bid history">
-        {sorted.map((bid, i) => (
+        {sorted.map((bid, i) => {
+          const initials = bid.bidderName.split(/\s+/).filter(Boolean).slice(0, 2).map((name) => name[0]).join('').toUpperCase();
+          return (
           <li key={bid.id} className={`${styles.item} ${i === 0 ? styles.topBid : ''}`}>
             <div className={styles.left}>
-              <span className={styles.avatar} aria-hidden="true">
-                {bid.bidderName.charAt(0)}
+              <span className={`${styles.avatar} ${styles[`avatarTone${i % 5}`]}`} aria-hidden="true">
+                {initials}
               </span>
               <div>
                 <span className={styles.name}>{bid.bidderName}</span>
@@ -39,7 +41,8 @@ export default function BidHistory({ bids }) {
             </div>
             <span className={styles.amount}>${bid.amount.toLocaleString()}</span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

@@ -92,6 +92,12 @@
 	width: 32px;
 }
 
+.bidderTone0 { background: #ccebdc !important; color: #24473e !important; }
+.bidderTone1 { background: #d8d3fb !important; color: #46417e !important; }
+.bidderTone2 { background: #f7d5c7 !important; color: #80422e !important; }
+.bidderTone3 { background: #c9dcf6 !important; color: #2f557e !important; }
+.bidderTone4 { background: #f1d2ef !important; color: #70326e !important; }
+
 .bidder b {
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -143,3 +149,12 @@
 	.bidFeed li { grid-template-columns: minmax(0, 1fr) auto; }
 	.bidFeed li small { grid-column: 2; }
 }
+
+.topBar { align-items: flex-start; display: flex; justify-content: space-between; gap: 16px; }
+.topBar .breadcrumb { margin-bottom: 20px; }
+.topBar .btn-outline { margin: 0; white-space: nowrap; }
+.quickBid { background: #edf7f1; border: 1px solid #86c7a2; color: #17643a; font-size: 14px; font-weight: 800; padding: 12px; width: 100%; }
+.quickBid:hover { background: #dff1e6; border-color: #3c9863; }
+.bidError { color: #b42318; font-weight: 700; }
+.bidSuccess { color: #16743a; font-weight: 700; }
+@media (max-width: 560px) { .topBar { align-items: stretch; flex-direction: column; }.topBar .btn-outline { width: 100%; } }

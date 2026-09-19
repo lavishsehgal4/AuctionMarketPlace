@@ -57,8 +57,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--primary-light);
-  color: var(--primary);
+  color: #24473e;
   font-weight: 700;
   font-size: 15px;
   display: flex;
@@ -66,6 +65,12 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
+.avatarTone0 { background: #ccebdc; }
+.avatarTone1 { background: #d8d3fb; color: #46417e; }
+.avatarTone2 { background: #f7d5c7; color: #80422e; }
+.avatarTone3 { background: #c9dcf6; color: #2f557e; }
+.avatarTone4 { background: #f1d2ef; color: #70326e; }
 
 .name {
   display: block;

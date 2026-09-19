@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { cancelAuction, getMyAuctionDetail } from '../api/auctionsApi';
+import socket from '../api/socket';
 import AuctionRoomStatus from '../components/AuctionRoomStatus';
 import useAuctionRoom from '../hooks/useAuctionRoom';
 import { formatDateTime, formatTimeLeft } from '../utils/time';
@@ -42,6 +43,21 @@ export default function SellerAuctionDetailPage({ currentUser }) {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const handleBidPlaced = (result) => {
+      if (result.auction_id !== id) return;
+      setAuction((previous) => previous ? {
+        ...previous,
+        highest_bid: result.highest_bid,
+        bid_count: result.bid_count,
+        bids: [result.bid, ...(previous.bids || [])].slice(0, 20),
+      } : previous);
+    };
+
+    socket.on('bidPlaced', handleBidPlaced);
+    return () => socket.off('bidPlaced', handleBidPlaced);
+  }, [id]);
+
   async function cancelAuctionHandler() {
     setError('');
     setIsCancelling(true);
@@ -69,7 +85,7 @@ export default function SellerAuctionDetailPage({ currentUser }) {
   return (
     <main className={styles.page}>
       <div className={styles.container}>
-        <nav className={styles.breadcrumb} aria-label="Breadcrumb"><Link to="/seller#auctions">My Auctions</Link><span>/</span><span>{auction.product.title}</span></nav>
+        <div className={styles.topBar}><nav className={styles.breadcrumb} aria-label="Breadcrumb"><Link to="/seller#auctions">My Auctions</Link><span>/</span><span>{auction.product.title}</span></nav><button className="btn-outline" type="button" onClick={() => navigate('/seller#auctions')}>Back to My Auctions</button></div>
         <AuctionRoomStatus roomStatus={roomStatus} />
         {error ? <p className={styles.error}>{error}</p> : null}
         <section className={styles.hero}>
@@ -89,10 +105,10 @@ export default function SellerAuctionDetailPage({ currentUser }) {
               <div><strong>Recent bid activity</strong></div>
               {auction.bids?.length ? (
                 <ul>
-                  {auction.bids.map((bid) => (
+                  {auction.bids.map((bid, index) => (
                     <li key={bid.id}>
                       <span className={styles.bidder}>
-                        <i aria-hidden="true">{bid.bidder.display_name.slice(0, 2).toUpperCase()}</i>
+                        <i className={styles[`bidderTone${index % 5}`]} aria-hidden="true">{bid.bidder.display_name.split(/\s+/).filter(Boolean).slice(0, 2).map((name) => name[0]).join('').toUpperCase()}</i>
                         <b>{bid.bidder.display_name}</b>
                       </span>
                       <strong>{formatPrice(bid.amount)}</strong>
@@ -114,7 +130,6 @@ export default function SellerAuctionDetailPage({ currentUser }) {
         </section>
 
         <section className={styles.details}><div><p className={styles.eyebrow}>PRODUCT RECORD</p><h2>About this product</h2><p>{auction.product.description || 'No description has been added.'}</p></div><div><p className={styles.eyebrow}>SPECIFICATIONS</p><h2>Detailed specifications</h2>{auction.product.detailed_specs && Object.keys(auction.product.detailed_specs).length ? <dl className={styles.specifications}>{Object.entries(auction.product.detailed_specs).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl> : <p>No detailed specifications have been added.</p>}</div></section>
-        <button className={styles.back} type="button" onClick={() => navigate('/seller#auctions')}>Back to My Auctions</button>
       </div>
     </main>
   );

@@ -11,7 +11,7 @@ import BidderHomePage from './pages/BidderHomePage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerAuctionDetailPage from './pages/SellerAuctionDetailPage';
-import { logoutUser } from './api/authApi';
+import { logoutUser, refreshAccessToken } from './api/authApi';
 import socket from './api/socket';
 
 // ============================================
@@ -79,14 +79,29 @@ export default function App() {
   };
 
   useEffect(() => {
+    let isCurrent = true;
+
     if (!currentUser) {
       socket.disconnect();
       return undefined;
     }
 
-    socket.connect();
+    const connectAuthenticatedSocket = async () => {
+      try {
+        await refreshAccessToken();
+        if (isCurrent) socket.connect();
+      } catch {
+        if (!isCurrent) return;
+        socket.disconnect();
+        setCurrentUser(null);
+        localStorage.removeItem('user');
+      }
+    };
+
+    connectAuthenticatedSocket();
 
     return () => {
+      isCurrent = false;
       socket.disconnect();
     };
   }, [currentUser]);

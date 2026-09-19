@@ -32,6 +32,16 @@ const auctionSelection = {
 	winner: {
 		select: { id: true, display_name: true },
 	},
+	bids: {
+		orderBy: { placed_at: 'desc' },
+		take: 20,
+		select: {
+			id: true,
+			amount: true,
+			placed_at: true,
+			bidder: { select: { display_name: true } },
+		},
+	},
 };
 
 const sellerAuctionListSelection = {

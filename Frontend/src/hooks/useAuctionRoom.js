@@ -26,7 +26,6 @@ export default function useAuctionRoom(auctionId, currentUser) {
     socket.on('connect_error', handleConnectionError);
 
     if (socket.connected) joinAuctionRoom();
-    else socket.connect();
 
     return () => {
       isMounted = false;

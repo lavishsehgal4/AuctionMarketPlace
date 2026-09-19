@@ -107,6 +107,22 @@
   margin-top: 4px;
 }
 
+.quickBid {
+  background: #edf7f1;
+  border: 1px solid #86c7a2;
+  border-radius: var(--radius-sm);
+  color: #17643a;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px;
+  width: 100%;
+}
+
+.quickBid:hover {
+  background: #dff1e6;
+  border-color: #3c9863;
+}
+
 .watchBtn {
   width: 100%;
   padding: 12px;
@@ -122,4 +138,11 @@
   font-weight: 600;
   color: #166534;
   text-align: center;
+}
+
+.error {
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
 }

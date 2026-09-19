@@ -48,6 +48,15 @@ export const getPublicAuctions = async (filters) => {
   }
 };
 
+export const getPublicAuction = async (auctionId) => {
+  try {
+    const response = await axiosInstance.get(`${API_BASE}/${auctionId}`);
+    return response.data.data.auction;
+  } catch (error) {
+    throw error.response?.data || { message: 'Unable to load auction details' };
+  }
+};
+
 export function getAuctions() {
   return Promise.resolve(auctions);
 }
