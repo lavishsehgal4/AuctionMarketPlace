@@ -13,13 +13,18 @@ const loadOwnedProduct = loadOwnedResource({
   idParam: 'productId',
   ownerField: 'seller_id',
   resourceKey: 'product',
-  include: { auction: true },
+  include: {
+    auctions: {
+      where: { status: { in: ['SCHEDULED', 'ACTIVE'] } },
+      select: { id: true, status: true },
+    },
+  },
 });
 
 router.post(
   '/',
   ...sellerOnly,
-  validateRequest({ body: ['title', 'category_id', 'condition', 'images'] }),
+  validateRequest({ body: ['title', 'category_id', 'condition', 'primary_image'] }),
   productController.createProductController,
 );
 

@@ -121,7 +121,7 @@ const getAuctionsService = async (query) => {
 			bid_count: _count.bids,
 			product: {
 				title: product.title,
-				image_url: Array.isArray(product.images) ? product.images[0] : null,
+				image_url: product.primary_image,
 				category_name: product.category.name,
 				condition: product.condition,
 			},
@@ -165,7 +165,7 @@ const getMyAuctionsService = async (sellerId, query) => {
 			bid_count: _count.bids,
 			product: {
 				title: product.title,
-				image_url: Array.isArray(product.images) ? product.images[0] : null,
+				image_url: product.primary_image,
 				category_name: product.category.name,
 				condition: product.condition,
 			},

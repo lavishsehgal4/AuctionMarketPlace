@@ -100,14 +100,15 @@ model Product {
   detailed_specs Json?
   category_id    String          @db.Uuid
   condition      ProductCondition
-  images         Json
+  primary_image  String          @db.VarChar(500)
+  additional_images Json          @default("[]")
 
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
 
   seller   User     @relation(fields: [seller_id], references: [id])
   category Category @relation(fields: [category_id], references: [id])
-  auction  Auction?
+  auctions Auction[]
 
   @@index([seller_id])
   @@index([category_id])
@@ -118,12 +119,12 @@ model Product {
 // AUCTION TABLE
 // ============================================================
 // Stores a seller's auction configuration and its final result.
-// Each product may be registered in exactly one auction.
+// A product can be relisted after its prior auction reaches a terminal state.
 // ============================================================
 
 model Auction {
   id                String        @id @default(uuid()) @db.Uuid
-  product_id        String        @unique @db.Uuid
+  product_id        String        @db.Uuid
   seller_id         String        @db.Uuid
   starting_price    Decimal       @db.Decimal(12, 2)
   current_bid       Decimal       @db.Decimal(12, 2)
@@ -141,6 +142,7 @@ model Auction {
   bids    Bid[]
 
   @@index([seller_id])
+  @@index([product_id, status])
   @@index([winner_id])
   @@index([status, start_time])
   @@index([status, end_time])

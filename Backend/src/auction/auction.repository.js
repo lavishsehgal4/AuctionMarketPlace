@@ -16,7 +16,8 @@ const auctionSelection = {
 			title: true,
 			description: true,
 			condition: true,
-			images: true,
+			primary_image: true,
+			additional_images: true,
 			category: {
 				select: { id: true, name: true, slug: true },
 			},
@@ -39,7 +40,7 @@ const sellerAuctionListSelection = {
 	product: {
 		select: {
 			title: true,
-			images: true,
+			primary_image: true,
 			condition: true,
 			category: { select: { name: true } },
 		},
@@ -58,7 +59,7 @@ const publicAuctionListSelection = {
 	product: {
 		select: {
 			title: true,
-			images: true,
+			primary_image: true,
 			condition: true,
 			category: { select: { id: true, name: true } },
 		},
@@ -70,7 +71,9 @@ const findOwnedProductWithoutAuction = (productId, sellerId) => getPrismaClient(
 	where: {
 		id: productId,
 		seller_id: sellerId,
-		auction: null,
+		auctions: {
+			none: { status: { in: ['SCHEDULED', 'ACTIVE'] } },
+		},
 	},
 	select: { id: true },
 });

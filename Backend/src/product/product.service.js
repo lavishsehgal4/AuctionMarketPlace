@@ -3,11 +3,21 @@ const productRepository = require('./product.repository');
 
 const PRODUCT_CONDITIONS = ['NEW', 'USED', 'REFURBISHED'];
 
-const validateProductData = async (productData, isUpdate = false) => {
-  const { title, category_id: categoryId, condition, images } = productData;
+const toInventoryProduct = ({ auctions, ...product }) => {
+  const activeAuction = auctions?.[0] || null;
 
-  if (!isUpdate && (!title || !categoryId || !condition || !images)) {
-    throw new AppError('Title, category_id, condition, and images are required', 400, 'VALIDATION_ERROR');
+  return {
+    ...product,
+    registration_status: activeAuction?.status || 'READY',
+    active_auction: activeAuction,
+  };
+};
+
+const validateProductData = async (productData, isUpdate = false) => {
+  const { title, category_id: categoryId, condition, primary_image: primaryImage, additional_images: additionalImages } = productData;
+
+  if (!isUpdate && (!title || !categoryId || !condition || !primaryImage)) {
+    throw new AppError('Title, category_id, condition, and primary_image are required', 400, 'VALIDATION_ERROR');
   }
 
   if (title !== undefined && (typeof title !== 'string' || title.trim().length === 0 || title.length > 200)) {
@@ -18,8 +28,12 @@ const validateProductData = async (productData, isUpdate = false) => {
     throw new AppError('Condition must be NEW, USED, or REFURBISHED', 400, 'VALIDATION_ERROR');
   }
 
-  if (images !== undefined && (!Array.isArray(images) || images.length === 0)) {
-    throw new AppError('Images must contain at least one image URL', 400, 'VALIDATION_ERROR');
+  if (primaryImage !== undefined && (typeof primaryImage !== 'string' || primaryImage.trim().length === 0 || primaryImage.length > 500)) {
+    throw new AppError('primary_image must be a non-empty URL up to 500 characters', 400, 'VALIDATION_ERROR');
+  }
+
+  if (additionalImages !== undefined && (!Array.isArray(additionalImages) || additionalImages.some((image) => typeof image !== 'string' || image.trim().length === 0 || image.length > 500))) {
+    throw new AppError('additional_images must be an array of non-empty image URLs up to 500 characters', 400, 'VALIDATION_ERROR');
   }
 
   if (categoryId && !(await productRepository.categoryExists(categoryId))) {
@@ -28,7 +42,7 @@ const validateProductData = async (productData, isUpdate = false) => {
 };
 
 const ensureProductCanChange = (product) => {
-  if (product.auction) {
+  if (product.auctions?.some((auction) => ['SCHEDULED', 'ACTIVE'].includes(auction.status))) {
     throw new AppError('A product registered for auction cannot be changed', 409, 'PRODUCT_REGISTERED_FOR_AUCTION');
   }
 };
@@ -36,15 +50,18 @@ const ensureProductCanChange = (product) => {
 const createProductService = async (sellerId, productData) => {
   await validateProductData(productData);
 
-  return productRepository.createProduct({
+  const product = await productRepository.createProduct({
     seller_id: sellerId,
     title: productData.title.trim(),
     description: productData.description,
     detailed_specs: productData.detailed_specs,
     category_id: productData.category_id,
     condition: productData.condition,
-    images: productData.images,
+    primary_image: productData.primary_image.trim(),
+    additional_images: productData.additional_images || [],
   });
+
+  return toInventoryProduct(product);
 };
 
 const getProductService = async (productId) => {
@@ -54,16 +71,19 @@ const getProductService = async (productId) => {
     throw new AppError('Product was not found', 404, 'PRODUCT_NOT_FOUND');
   }
 
-  return product;
+  return toInventoryProduct(product);
 };
 
-const getMyProductsService = (sellerId) => productRepository.findProductsBySellerId(sellerId);
+const getMyProductsService = async (sellerId) => {
+  const products = await productRepository.findProductsBySellerId(sellerId);
+  return products.map(toInventoryProduct);
+};
 
 const updateProductService = async (product, productData) => {
   ensureProductCanChange(product);
   await validateProductData(productData, true);
 
-  const permittedFields = ['title', 'description', 'detailed_specs', 'category_id', 'condition', 'images'];
+  const permittedFields = ['title', 'description', 'detailed_specs', 'category_id', 'condition', 'primary_image', 'additional_images'];
   const updates = Object.fromEntries(
     Object.entries(productData).filter(([key, value]) => permittedFields.includes(key) && value !== undefined),
   );
@@ -76,7 +96,11 @@ const updateProductService = async (product, productData) => {
     updates.title = updates.title.trim();
   }
 
-  return productRepository.updateProduct(product.id, updates);
+  if (updates.primary_image) {
+    updates.primary_image = updates.primary_image.trim();
+  }
+
+  return toInventoryProduct(await productRepository.updateProduct(product.id, updates));
 };
 
 const deleteProductService = async (product) => {

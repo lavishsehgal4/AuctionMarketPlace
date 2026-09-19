@@ -6,7 +6,8 @@ const productSelection = {
   description: true,
   detailed_specs: true,
   condition: true,
-  images: true,
+  primary_image: true,
+  additional_images: true,
   created_at: true,
   updated_at: true,
   category: {
@@ -22,7 +23,8 @@ const productSelection = {
       display_name: true,
     },
   },
-  auction: {
+  auctions: {
+    where: { status: { in: ['SCHEDULED', 'ACTIVE'] } },
     select: {
       id: true,
       status: true,
