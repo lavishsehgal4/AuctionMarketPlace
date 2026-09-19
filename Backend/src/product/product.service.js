@@ -3,6 +3,16 @@ const productRepository = require('./product.repository');
 
 const PRODUCT_CONDITIONS = ['NEW', 'USED', 'REFURBISHED'];
 
+const isValidDetailedSpecs = (value) => value !== null
+  && typeof value === 'object'
+  && !Array.isArray(value)
+  && Object.entries(value).every(([key, entryValue]) => (
+    typeof key === 'string'
+    && key.trim().length > 0
+    && typeof entryValue === 'string'
+    && entryValue.trim().length > 0
+  ));
+
 const toInventoryProduct = ({ auctions, ...product }) => {
   const activeAuction = auctions?.[0] || null;
 
@@ -14,7 +24,7 @@ const toInventoryProduct = ({ auctions, ...product }) => {
 };
 
 const validateProductData = async (productData, isUpdate = false) => {
-  const { title, category_id: categoryId, condition, primary_image: primaryImage, additional_images: additionalImages } = productData;
+  const { title, category_id: categoryId, condition, primary_image: primaryImage, additional_images: additionalImages, detailed_specs: detailedSpecs } = productData;
 
   if (!isUpdate && (!title || !categoryId || !condition || !primaryImage)) {
     throw new AppError('Title, category_id, condition, and primary_image are required', 400, 'VALIDATION_ERROR');
@@ -34,6 +44,10 @@ const validateProductData = async (productData, isUpdate = false) => {
 
   if (additionalImages !== undefined && (!Array.isArray(additionalImages) || additionalImages.some((image) => typeof image !== 'string' || image.trim().length === 0 || image.length > 500))) {
     throw new AppError('additional_images must be an array of non-empty image URLs up to 500 characters', 400, 'VALIDATION_ERROR');
+  }
+
+  if (detailedSpecs !== undefined && !isValidDetailedSpecs(detailedSpecs)) {
+    throw new AppError('detailed_specs must be an object with non-empty specification names and values', 400, 'VALIDATION_ERROR');
   }
 
   if (categoryId && !(await productRepository.categoryExists(categoryId))) {

@@ -5,13 +5,18 @@ import { createProduct, getMyProducts } from '../api/productsApi';
 import { getMyAuctionDetail, getMyAuctions, registerAuction } from '../api/auctionsApi';
 import styles from './SellerDashboardPage.module.css';
 
-const emptyProduct = { title: '', category_id: '', condition: 'USED', description: '', image_url: '' };
+const emptyProduct = { title: '', category_id: '', condition: 'USED', description: '', primary_image: '', additional_images: [''] };
 const auctionTabs = [
   { status: 'ACTIVE', label: 'Live' },
   { status: 'SCHEDULED', label: 'Scheduled' },
   { status: 'ENDED', label: 'Ended' },
   { status: 'UNSOLD', label: 'Unsold' },
   { status: 'CANCELLED', label: 'Cancelled' },
+];
+const productTabs = [
+  { status: 'READY', label: 'Ready to go for auction' },
+  { status: 'SCHEDULED', label: 'Scheduled products' },
+  { status: 'ACTIVE', label: 'Active products' },
 ];
 
 const formatPrice = (value) => `$${Number(value).toFixed(2)}`;
@@ -40,6 +45,10 @@ export default function SellerDashboardPage({ currentUser }) {
   const [auctionListError, setAuctionListError] = useState('');
   const [selectedAuction, setSelectedAuction] = useState(null);
   const [isLoadingAuctionDetail, setIsLoadingAuctionDetail] = useState(false);
+  const [productStatus, setProductStatus] = useState('READY');
+  const [selectedProductDetail, setSelectedProductDetail] = useState(null);
+  const [selectedProductImage, setSelectedProductImage] = useState('');
+  const [detailedSpecs, setDetailedSpecs] = useState([]);
 
   useEffect(() => {
     Promise.all([getMyProducts(), getCategories()])
@@ -68,7 +77,8 @@ export default function SellerDashboardPage({ currentUser }) {
     return () => { isCurrent = false; };
   }, [auctionStatus, auctionSort, auctionPage]);
 
-  const readyProducts = products.filter((product) => !product.auction);
+  const readyProducts = products.filter((product) => product.registration_status === 'READY');
+  const visibleProducts = products.filter((product) => product.registration_status === productStatus);
   const selectedProduct = readyProducts.find((product) => product.id === selectedProductId);
 
   function openProductPicker() {
@@ -84,6 +94,36 @@ export default function SellerDashboardPage({ currentUser }) {
   function goToCreateProduct() {
     setIsProductModalOpen(false);
     document.getElementById('create-product')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function openProductDetail(product) {
+    setSelectedProductDetail(product);
+    setSelectedProductImage(product.primary_image);
+  }
+
+  function updateAdditionalImage(index, value) {
+    setProductForm((previous) => ({
+      ...previous,
+      additional_images: previous.additional_images.map((image, imageIndex) => imageIndex === index ? value : image),
+    }));
+  }
+
+  function addAdditionalImage() {
+    setProductForm((previous) => ({ ...previous, additional_images: [...previous.additional_images, ''] }));
+  }
+
+  function updateDetailedSpec(index, field, value) {
+    setDetailedSpecs((previous) => previous.map((spec, specIndex) => (
+      specIndex === index ? { ...spec, [field]: value } : spec
+    )));
+  }
+
+  function addDetailedSpec() {
+    setDetailedSpecs((previous) => [...previous, { key: '', value: '' }]);
+  }
+
+  function removeDetailedSpec(index) {
+    setDetailedSpecs((previous) => previous.filter((_, specIndex) => specIndex !== index));
   }
 
   function changeAuctionStatus(status) {
@@ -123,17 +163,27 @@ export default function SellerDashboardPage({ currentUser }) {
     setProductError('');
     setIsCreatingProduct(true);
 
+    const hasIncompleteSpec = detailedSpecs.some((spec) => !spec.key.trim() || !spec.value.trim());
+    if (hasIncompleteSpec) {
+      setProductError('Complete or remove each detailed specification before adding the product.');
+      setIsCreatingProduct(false);
+      return;
+    }
+
     try {
       const product = await createProduct({
         title: productForm.title,
         description: productForm.description || undefined,
         category_id: productForm.category_id,
         condition: productForm.condition,
-        images: [productForm.image_url],
+        primary_image: productForm.primary_image,
+        additional_images: productForm.additional_images.map((image) => image.trim()).filter(Boolean),
+        detailed_specs: detailedSpecs.length ? Object.fromEntries(detailedSpecs.map((spec) => [spec.key.trim(), spec.value.trim()])) : undefined,
       });
       setProducts((previous) => [product, ...previous]);
       setSelectedProductId(product.id);
       setProductForm({ ...emptyProduct, category_id: categories[0]?.id || '' });
+      setDetailedSpecs([]);
     } catch (error) {
       setProductError(error.message);
     } finally {
@@ -167,7 +217,7 @@ export default function SellerDashboardPage({ currentUser }) {
         end_time: endDate.toISOString(),
       });
       setProducts((previous) => previous.map((product) => (
-        product.id === selectedProductId ? { ...product, auction } : product
+        product.id === selectedProductId ? { ...product, registration_status: auction.status, active_auction: auction } : product
       )));
       setSelectedProductId('');
       setAuctionForm({ startingPrice: '', increment: '', startTime: '', endTime: '' });
@@ -206,14 +256,18 @@ export default function SellerDashboardPage({ currentUser }) {
           {isLoadingProducts ? <p className={styles.note}>Loading your products...</p> : null}
           {productError && !isLoadingProducts ? <p className={styles.error}>{productError}</p> : null}
           {!isLoadingProducts && !productError && products.length === 0 ? <p className={styles.note}>No products yet. Add your first item below.</p> : null}
+          <div className={styles.productTabs} role="tablist" aria-label="Filter products by auction availability">
+            {productTabs.map((tab) => <button key={tab.status} className={productStatus === tab.status ? styles.productTabActive : ''} type="button" role="tab" aria-selected={productStatus === tab.status} onClick={() => setProductStatus(tab.status)}>{tab.label}<span>{products.filter((product) => product.registration_status === tab.status).length}</span></button>)}
+          </div>
           <div className={styles.productGrid}>
-            {products.map((product) => (
-              <article className={styles.product} key={product.id}>
-                <img src={product.images[0]} alt="" />
-                <div><span className={`${styles.status} ${styles[product.auction ? product.auction.status.toLowerCase() : 'ready']}`}>{product.auction?.status || 'READY'}</span><h3>{product.title}</h3><p>{product.category.name} · {product.condition}</p></div>
-              </article>
+            {visibleProducts.map((product) => (
+              <button className={styles.product} type="button" key={product.id} onClick={() => openProductDetail(product)}>
+                <img src={product.primary_image} alt="" />
+                <div><h3>{product.title}</h3><p>{product.category.name} · {product.condition}</p></div>
+              </button>
             ))}
           </div>
+          {!isLoadingProducts && !productError && products.length > 0 && visibleProducts.length === 0 ? <p className={styles.note}>No {productTabs.find((tab) => tab.status === productStatus)?.label.toLowerCase()}.</p> : null}
         </section>
 
         <section className={styles.section} id="create-product">
@@ -222,8 +276,10 @@ export default function SellerDashboardPage({ currentUser }) {
             <label>Product title<input value={productForm.title} onChange={(event) => setProductForm({ ...productForm, title: event.target.value })} placeholder="e.g. Hand-thrown ceramic vase" required /></label>
             <label>Category<select value={productForm.category_id} onChange={(event) => setProductForm({ ...productForm, category_id: event.target.value })} required disabled={!categories.length}><option value="">Select a category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
             <label>Condition<select value={productForm.condition} onChange={(event) => setProductForm({ ...productForm, condition: event.target.value })}><option>NEW</option><option>USED</option><option>REFURBISHED</option></select></label>
-            <label>Image URL<input type="url" value={productForm.image_url} onChange={(event) => setProductForm({ ...productForm, image_url: event.target.value })} placeholder="https://example.com/item.jpg" required /></label>
+            <label>Primary image URL<input type="url" value={productForm.primary_image} onChange={(event) => setProductForm({ ...productForm, primary_image: event.target.value })} placeholder="https://example.com/item.jpg" required /></label>
+            <div className={`${styles.full} ${styles.additionalImages}`}><span>Additional image URLs</span>{productForm.additional_images.map((image, index) => <input key={index} type="url" value={image} onChange={(event) => updateAdditionalImage(index, event.target.value)} placeholder="https://example.com/item-detail.jpg" />)}<button className="btn-outline" type="button" onClick={addAdditionalImage}>Add image</button></div>
             <label className={styles.full}>Description<textarea value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} placeholder="Condition, provenance, and included details" rows="3" /></label>
+            <div className={`${styles.full} ${styles.specifications}`}><span>Detailed specifications</span>{detailedSpecs.map((spec, index) => <div className={styles.specificationRow} key={index}><input value={spec.key} onChange={(event) => updateDetailedSpec(index, 'key', event.target.value)} placeholder="e.g. Storage" required /><input value={spec.value} onChange={(event) => updateDetailedSpec(index, 'value', event.target.value)} placeholder="e.g. 256 GB" required /><button className={styles.removeSpec} type="button" onClick={() => removeDetailedSpec(index)} aria-label={`Remove ${spec.key || 'specification'}`}>Remove</button></div>)}<button className="btn-outline" type="button" onClick={addDetailedSpec}>Add specification</button></div>
             <button className="btn-primary" type="submit" disabled={isCreatingProduct || !categories.length}>{isCreatingProduct ? 'Adding product...' : 'Add product'}</button>
           </form>
         </section>
@@ -234,7 +290,7 @@ export default function SellerDashboardPage({ currentUser }) {
           {auctionMessage ? <p className={styles.note}>{auctionMessage}</p> : null}
           <form className={styles.form} onSubmit={registerAuctionHandler}>
             <div className={`${styles.full} ${styles.selectedProduct}`}>
-              {selectedProduct ? <><img src={selectedProduct.images[0]} alt="" /><span><strong>{selectedProduct.title}</strong><small>{selectedProduct.category.name} · {selectedProduct.condition}</small></span></> : <span>No product selected</span>}
+              {selectedProduct ? <><img src={selectedProduct.primary_image} alt="" /><span><strong>{selectedProduct.title}</strong><small>{selectedProduct.category.name} · {selectedProduct.condition}</small></span></> : <span>No product selected</span>}
               <button className="btn-outline" type="button" onClick={openProductPicker}>{selectedProduct ? 'Change product' : 'Select product'}</button>
             </div>
             <label>Starting price<input type="number" min="0.01" step="0.01" value={auctionForm.startingPrice} onChange={(event) => setAuctionForm({ ...auctionForm, startingPrice: event.target.value })} placeholder="$0" required /></label>
@@ -271,7 +327,7 @@ export default function SellerDashboardPage({ currentUser }) {
             <div className={styles.productPicker} role="radiogroup" aria-label="Select a product for auction">
               {readyProducts.map((product) => (
                 <button key={product.id} type="button" className={`${styles.productChoice} ${selectedProductId === product.id ? styles.productChoiceSelected : ''}`} onClick={() => selectProduct(product.id)} role="radio" aria-checked={selectedProductId === product.id}>
-                  <img src={product.images[0]} alt="" />
+                  <img src={product.primary_image} alt="" />
                   <span>{product.title}</span>
                   <span className={styles.productDetails}>{product.category.name} · {product.condition}<br />{product.description || 'No description added'}</span>
                 </button>
@@ -282,11 +338,22 @@ export default function SellerDashboardPage({ currentUser }) {
           </section>
         </div>
       ) : null}
+      {selectedProductDetail ? (
+        <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setSelectedProductDetail(null)}>
+          <section className={styles.productDetailModal} role="dialog" aria-modal="true" aria-labelledby="product-detail-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className={styles.modalHeader}><div><p className={styles.eyebrow}>PRODUCT DETAILS</p><h2 id="product-detail-title">{selectedProductDetail.title}</h2></div><button className={styles.closeModal} type="button" onClick={() => setSelectedProductDetail(null)}>Close</button></div>
+            <div className={styles.productDetailContent}>
+              <div className={styles.productGallery}><div className={styles.productMainImage}><img src={selectedProductImage} alt={selectedProductDetail.title} /></div><div className={styles.productThumbnails}>{[selectedProductDetail.primary_image, ...(selectedProductDetail.additional_images || [])].filter(Boolean).map((image) => <button className={selectedProductImage === image ? styles.thumbnailActive : ''} type="button" key={image} onClick={() => setSelectedProductImage(image)} aria-label="Show product image"><img src={image} alt="" /></button>)}</div></div>
+              <div className={styles.productDetailInfo}><p className={styles.productMeta}>{selectedProductDetail.category.name} · {selectedProductDetail.condition}</p><h3>About this product</h3><p>{selectedProductDetail.description || 'No description has been added.'}</p><h3>Detailed specifications</h3>{selectedProductDetail.detailed_specs && Object.keys(selectedProductDetail.detailed_specs).length ? <dl className={styles.specificationList}>{Object.entries(selectedProductDetail.detailed_specs).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl> : <p>No detailed specifications have been added.</p>}</div>
+            </div>
+          </section>
+        </div>
+      ) : null}
       {selectedAuction || isLoadingAuctionDetail ? (
         <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => !isLoadingAuctionDetail && setSelectedAuction(null)}>
           <section className={styles.auctionDetailModal} role="dialog" aria-modal="true" aria-labelledby="auction-detail-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className={styles.modalHeader}><div><p className={styles.eyebrow}>AUCTION DETAILS</p><h2 id="auction-detail-title">{selectedAuction?.product.title || 'Loading auction...'}</h2></div><button className={styles.closeModal} type="button" onClick={() => setSelectedAuction(null)} disabled={isLoadingAuctionDetail}>Close</button></div>
-            {selectedAuction ? <div className={styles.auctionDetail}><img src={selectedAuction.product.images[0]} alt="" /><div><span className={`${styles.status} ${styles[selectedAuction.status.toLowerCase()]}`}>{selectedAuction.status}</span><p>{selectedAuction.product.category.name} · {selectedAuction.product.condition}</p><p>{selectedAuction.product.description || 'No description added.'}</p><dl><div><dt>Starting price</dt><dd>{formatPrice(selectedAuction.starting_price)}</dd></div><div><dt>Current bid</dt><dd>{formatPrice(selectedAuction.current_bid)}</dd></div><div><dt>Minimum increment</dt><dd>{formatPrice(selectedAuction.min_bid_increment)}</dd></div><div><dt>Starts</dt><dd>{formatDate(selectedAuction.start_time)}</dd></div><div><dt>Ends</dt><dd>{formatDate(selectedAuction.end_time)}</dd></div></dl></div></div> : <p className={styles.note}>Loading auction details...</p>}
+            {selectedAuction ? <div className={styles.auctionDetail}><img src={selectedAuction.product.primary_image} alt="" /><div><span className={`${styles.status} ${styles[selectedAuction.status.toLowerCase()]}`}>{selectedAuction.status}</span><p>{selectedAuction.product.category.name} · {selectedAuction.product.condition}</p><p>{selectedAuction.product.description || 'No description added.'}</p><dl><div><dt>Starting price</dt><dd>{formatPrice(selectedAuction.starting_price)}</dd></div><div><dt>Current bid</dt><dd>{formatPrice(selectedAuction.current_bid)}</dd></div><div><dt>Minimum increment</dt><dd>{formatPrice(selectedAuction.min_bid_increment)}</dd></div><div><dt>Starts</dt><dd>{formatDate(selectedAuction.start_time)}</dd></div><div><dt>Ends</dt><dd>{formatDate(selectedAuction.end_time)}</dd></div></dl></div></div> : <p className={styles.note}>Loading auction details...</p>}
           </section>
         </div>
       ) : null}
