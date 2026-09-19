@@ -1,6 +1,9 @@
 require('dotenv').config();
+const http = require('http');
 const app = require('./app');
 const { connectToSupabase, disconnectFromSupabase } = require('./config/supabase');
+const { registerJobs } = require('./jobs');
+const { createSocketServer } = require('./config/socket');
 
 // ============================================
 // Configuration from Environment Variables
@@ -21,7 +24,11 @@ async function startServer() {
     // ============================================
     // Step 2: Start Express Server
     // ============================================
-    const server = app.listen(PORT, () => {
+    const jobs = registerJobs();
+    const server = http.createServer(app);
+    createSocketServer(server);
+
+    server.listen(PORT, () => {
       console.log(`✅ Server is running on http://localhost:${PORT}`);
     });
 
@@ -39,12 +46,12 @@ async function startServer() {
     // ============================================
     process.on('SIGINT', async () => {
       console.log('\n📛 Received SIGINT, shutting down gracefully...');
-      await gracefulShutdown(server);
+      await gracefulShutdown(server, jobs);
     });
 
     process.on('SIGTERM', async () => {
       console.log('\n📛 Received SIGTERM, shutting down gracefully...');
-      await gracefulShutdown(server);
+      await gracefulShutdown(server, jobs);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error.message);
@@ -56,11 +63,13 @@ async function startServer() {
  * Gracefully shutdown server and database connections
  * @param {Object} server - Express server instance
  */
-async function gracefulShutdown(server) {
+async function gracefulShutdown(server, jobs) {
   try {
     console.log('🔄 Closing server...');
     server.close(async () => {
       console.log('✅ Server closed');
+
+      jobs.forEach((job) => job.stop());
 
       // ============================================
       // Step 3: Disconnect from Supabase Database

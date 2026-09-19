@@ -67,6 +67,21 @@ const publicAuctionListSelection = {
 	_count: { select: { bids: true } },
 };
 
+const sellerAuctionDetailSelection = {
+	...auctionSelection,
+	_count: { select: { bids: true } },
+	bids: {
+		orderBy: { placed_at: 'desc' },
+		take: 20,
+		select: {
+			id: true,
+			amount: true,
+			placed_at: true,
+			bidder: { select: { display_name: true } },
+		},
+	},
+};
+
 const findOwnedProductWithoutAuction = (productId, sellerId) => getPrismaClient().product.findFirst({
 	where: {
 		id: productId,
@@ -116,7 +131,7 @@ const countSellerAuctionsByStatus = (sellerId) => getPrismaClient().auction.grou
 
 const findAuctionDetailBySellerId = (auctionId, sellerId) => getPrismaClient().auction.findFirst({
 	where: { id: auctionId, seller_id: sellerId },
-	select: auctionSelection,
+	select: sellerAuctionDetailSelection,
 });
 
 const findOwnedAuctionById = (auctionId, sellerId) => getPrismaClient().auction.findFirst({
@@ -128,6 +143,14 @@ const cancelAuction = (auctionId) => getPrismaClient().auction.update({
 	where: { id: auctionId },
 	data: { status: 'CANCELLED' },
 	select: auctionSelection,
+});
+
+const activateScheduledAuctions = (now) => getPrismaClient().auction.updateMany({
+	where: {
+		status: 'SCHEDULED',
+		start_time: { lte: now },
+	},
+	data: { status: 'ACTIVE' },
 });
 
 module.exports = {
@@ -142,4 +165,5 @@ module.exports = {
 	findAuctionDetailBySellerId,
 	findOwnedAuctionById,
 	cancelAuction,
+	activateScheduledAuctions,
 };

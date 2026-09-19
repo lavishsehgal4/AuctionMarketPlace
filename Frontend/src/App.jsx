@@ -1,7 +1,7 @@
 // Root component — sets up routing and manages authentication state.
 // Handles login/logout with backend API and token management.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
@@ -10,7 +10,9 @@ import RegisterPage from './pages/RegisterPage';
 import BidderHomePage from './pages/BidderHomePage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
+import SellerAuctionDetailPage from './pages/SellerAuctionDetailPage';
 import { logoutUser } from './api/authApi';
+import socket from './api/socket';
 
 // ============================================
 // Auth Guard Components
@@ -76,6 +78,19 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    if (!currentUser) {
+      socket.disconnect();
+      return undefined;
+    }
+
+    socket.connect();
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentUser]);
+
   return (
     <BrowserRouter>
       <Navbar currentUser={currentUser} onLogout={handleLogout} />
@@ -112,6 +127,14 @@ export default function App() {
           element={
             <RequireAuth currentUser={currentUser}>
               <SellerDashboardPage currentUser={currentUser} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/seller/auctions/:id"
+          element={
+            <RequireAuth currentUser={currentUser}>
+              <SellerAuctionDetailPage />
             </RequireAuth>
           }
         />

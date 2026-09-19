@@ -30,6 +30,15 @@ export const getMyAuctionDetail = async (auctionId) => {
   }
 };
 
+export const cancelAuction = async (auctionId) => {
+  try {
+    const response = await axiosInstance.post(`${API_BASE}/${auctionId}/cancel`);
+    return response.data.data.auction;
+  } catch (error) {
+    throw error.response?.data || { message: 'Unable to cancel auction' };
+  }
+};
+
 export const getPublicAuctions = async (filters) => {
   try {
     const response = await axiosInstance.get(API_BASE, { params: filters });

@@ -199,6 +199,8 @@ const cancelAuctionService = async (sellerId, auctionId) => {
 	return auctionRepository.cancelAuction(auction.id);
 };
 
+const activateScheduledAuctionsService = () => auctionRepository.activateScheduledAuctions(new Date());
+
 module.exports = {
 	createAuctionService,
 	getAuctionService,
@@ -206,4 +208,5 @@ module.exports = {
 	getMyAuctionsService,
 	getMyAuctionDetailService,
 	cancelAuctionService,
+	activateScheduledAuctionsService,
 };

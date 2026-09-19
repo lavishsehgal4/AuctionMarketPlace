@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 import { getCategories } from '../api/categoriesApi';
 import { createProduct, getMyProducts } from '../api/productsApi';
-import { getMyAuctionDetail, getMyAuctions, registerAuction } from '../api/auctionsApi';
+import { getMyAuctions, registerAuction } from '../api/auctionsApi';
 import styles from './SellerDashboardPage.module.css';
 
 const emptyProduct = { title: '', category_id: '', condition: 'USED', description: '', primary_image: '', additional_images: [''] };
@@ -23,6 +24,7 @@ const formatPrice = (value) => `$${Number(value).toFixed(2)}`;
 const formatDate = (value) => new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
 export default function SellerDashboardPage({ currentUser }) {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [productForm, setProductForm] = useState(emptyProduct);
@@ -43,8 +45,6 @@ export default function SellerDashboardPage({ currentUser }) {
   const [auctionPage, setAuctionPage] = useState(1);
   const [isLoadingAuctions, setIsLoadingAuctions] = useState(true);
   const [auctionListError, setAuctionListError] = useState('');
-  const [selectedAuction, setSelectedAuction] = useState(null);
-  const [isLoadingAuctionDetail, setIsLoadingAuctionDetail] = useState(false);
   const [productStatus, setProductStatus] = useState('READY');
   const [selectedProductDetail, setSelectedProductDetail] = useState(null);
   const [selectedProductImage, setSelectedProductImage] = useState('');
@@ -144,18 +144,6 @@ export default function SellerDashboardPage({ currentUser }) {
     setIsLoadingAuctions(true);
     setAuctionListError('');
     setAuctionPage(page);
-  }
-
-  async function openAuctionDetail(auctionId) {
-    setIsLoadingAuctionDetail(true);
-    setAuctionListError('');
-    try {
-      setSelectedAuction(await getMyAuctionDetail(auctionId));
-    } catch (error) {
-      setAuctionListError(error.message);
-    } finally {
-      setIsLoadingAuctionDetail(false);
-    }
   }
 
   async function createProductHandler(event) {
@@ -311,7 +299,7 @@ export default function SellerDashboardPage({ currentUser }) {
             {auctionListError ? <p className={styles.error}>{auctionListError}</p> : null}
             {isLoadingAuctions ? <p className={styles.note}>Loading your auctions...</p> : null}
             {!isLoadingAuctions && !auctionListError && sellerAuctions.length === 0 ? <p className={styles.note}>No {auctionTabs.find((tab) => tab.status === auctionStatus)?.label.toLowerCase()} auctions yet.</p> : null}
-            <div className={styles.auctionTable}>{sellerAuctions.map((auction) => <article key={auction.id}><img src={auction.product?.image_url || ''} alt="" /><div><span className={`${styles.status} ${styles[auction.status?.toLowerCase()]}`}>{auction.status}</span><h3>{auction.product?.title || 'Untitled product'}</h3><p>{auction.product?.category_name || 'Uncategorized'} · {auction.product?.condition || 'Unknown condition'}</p></div><strong>{formatPrice(auction.current_bid)}</strong><span>{auction.bid_count || 0} bids</span><span>{formatDate(auction.end_time)}</span><button className="btn-outline" type="button" onClick={() => openAuctionDetail(auction.id)}>View</button></article>)}</div>
+            <div className={styles.auctionTable}>{sellerAuctions.map((auction) => <article key={auction.id}><img src={auction.product?.image_url || ''} alt="" /><div><span className={`${styles.status} ${styles[auction.status?.toLowerCase()]}`}>{auction.status}</span><h3>{auction.product?.title || 'Untitled product'}</h3><p>{auction.product?.category_name || 'Uncategorized'} · {auction.product?.condition || 'Unknown condition'}</p></div><strong>{formatPrice(auction.current_bid)}</strong><span>{auction.bid_count || 0} bids</span><span>{formatDate(auction.end_time)}</span><button className="btn-outline" type="button" onClick={() => navigate(`/seller/auctions/${auction.id}`)}>View</button></article>)}</div>
             {auctionPagination?.total_pages > 1 ? <div className={styles.pagination}><button className="btn-outline" type="button" disabled={auctionPage === 1} onClick={() => changeAuctionPage(auctionPage - 1)}>Previous</button><span>Page {auctionPagination.page} of {auctionPagination.total_pages}</span><button className="btn-outline" type="button" disabled={auctionPage === auctionPagination.total_pages} onClick={() => changeAuctionPage(auctionPage + 1)}>Next</button></div> : null}
           </div>
         </section>
@@ -346,14 +334,6 @@ export default function SellerDashboardPage({ currentUser }) {
               <div className={styles.productGallery}><div className={styles.productMainImage}><img src={selectedProductImage} alt={selectedProductDetail.title} /></div><div className={styles.productThumbnails}>{[selectedProductDetail.primary_image, ...(selectedProductDetail.additional_images || [])].filter(Boolean).map((image) => <button className={selectedProductImage === image ? styles.thumbnailActive : ''} type="button" key={image} onClick={() => setSelectedProductImage(image)} aria-label="Show product image"><img src={image} alt="" /></button>)}</div></div>
               <div className={styles.productDetailInfo}><p className={styles.productMeta}>{selectedProductDetail.category.name} · {selectedProductDetail.condition}</p><h3>About this product</h3><p>{selectedProductDetail.description || 'No description has been added.'}</p><h3>Detailed specifications</h3>{selectedProductDetail.detailed_specs && Object.keys(selectedProductDetail.detailed_specs).length ? <dl className={styles.specificationList}>{Object.entries(selectedProductDetail.detailed_specs).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl> : <p>No detailed specifications have been added.</p>}</div>
             </div>
-          </section>
-        </div>
-      ) : null}
-      {selectedAuction || isLoadingAuctionDetail ? (
-        <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => !isLoadingAuctionDetail && setSelectedAuction(null)}>
-          <section className={styles.auctionDetailModal} role="dialog" aria-modal="true" aria-labelledby="auction-detail-title" onMouseDown={(event) => event.stopPropagation()}>
-            <div className={styles.modalHeader}><div><p className={styles.eyebrow}>AUCTION DETAILS</p><h2 id="auction-detail-title">{selectedAuction?.product.title || 'Loading auction...'}</h2></div><button className={styles.closeModal} type="button" onClick={() => setSelectedAuction(null)} disabled={isLoadingAuctionDetail}>Close</button></div>
-            {selectedAuction ? <div className={styles.auctionDetail}><img src={selectedAuction.product.primary_image} alt="" /><div><span className={`${styles.status} ${styles[selectedAuction.status.toLowerCase()]}`}>{selectedAuction.status}</span><p>{selectedAuction.product.category.name} · {selectedAuction.product.condition}</p><p>{selectedAuction.product.description || 'No description added.'}</p><dl><div><dt>Starting price</dt><dd>{formatPrice(selectedAuction.starting_price)}</dd></div><div><dt>Current bid</dt><dd>{formatPrice(selectedAuction.current_bid)}</dd></div><div><dt>Minimum increment</dt><dd>{formatPrice(selectedAuction.min_bid_increment)}</dd></div><div><dt>Starts</dt><dd>{formatDate(selectedAuction.start_time)}</dd></div><div><dt>Ends</dt><dd>{formatDate(selectedAuction.end_time)}</dd></div></dl></div></div> : <p className={styles.note}>Loading auction details...</p>}
           </section>
         </div>
       ) : null}
