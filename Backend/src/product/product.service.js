@@ -1,5 +1,6 @@
 const AppError = require('../errors/AppError');
 const productRepository = require('./product.repository');
+const { getEffectiveAuctionStatus } = require('../auction/auction.state');
 
 const PRODUCT_CONDITIONS = ['NEW', 'USED', 'REFURBISHED'];
 
@@ -15,10 +16,11 @@ const isValidDetailedSpecs = (value) => value !== null
 
 const toInventoryProduct = ({ auctions, ...product }) => {
   const activeAuction = auctions?.[0] || null;
+  const registrationStatus = activeAuction ? getEffectiveAuctionStatus(activeAuction) : 'READY';
 
   return {
     ...product,
-    registration_status: activeAuction?.status || 'READY',
+    registration_status: registrationStatus,
     active_auction: activeAuction,
   };
 };
@@ -56,7 +58,7 @@ const validateProductData = async (productData, isUpdate = false) => {
 };
 
 const ensureProductCanChange = (product) => {
-  if (product.auctions?.some((auction) => ['SCHEDULED', 'ACTIVE'].includes(auction.status))) {
+  if (product.auctions?.some((auction) => ['SCHEDULED', 'ACTIVE'].includes(getEffectiveAuctionStatus(auction)))) {
     throw new AppError('A product registered for auction cannot be changed', 409, 'PRODUCT_REGISTERED_FOR_AUCTION');
   }
 };

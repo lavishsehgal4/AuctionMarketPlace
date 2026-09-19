@@ -64,6 +64,7 @@ export default function SellerAuctionDetailPage({ currentUser }) {
   const targetTime = isScheduled ? auction.start_time : auction.end_time;
   const countdown = now === 0 ? 'Updating...' : new Date(targetTime) > now ? formatTimeLeft(targetTime) : isScheduled ? 'Opening now' : 'Auction ended';
   const images = [auction.product.primary_image, ...(auction.product.additional_images || [])].filter(Boolean);
+  const highestBidAmount = Number(auction.highest_bid?.amount ?? 0);
 
   return (
     <main className={styles.page}>
@@ -78,7 +79,38 @@ export default function SellerAuctionDetailPage({ currentUser }) {
 
         <section className={styles.content}>
           <div className={styles.gallery}><div className={styles.mainImage}><img src={selectedImage} alt={auction.product.title} /></div><div className={styles.thumbnails}>{images.map((image) => <button className={selectedImage === image ? styles.thumbnailActive : ''} type="button" key={image} onClick={() => setSelectedImage(image)} aria-label="Show product image"><img src={image} alt="" /></button>)}</div></div>
-          <aside className={styles.auctionPanel}><p className={styles.panelLabel}>CURRENT HIGHEST BID</p><strong className={styles.price}>{formatPrice(auction.current_bid)}</strong><p>{auction._count?.bids || 0} bids placed</p><div className={styles.bidEntry}><label>Bid amount<input type="number" min="0" step="0.01" value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} placeholder={formatPrice(Number(auction.current_bid) + Number(auction.min_bid_increment))} disabled={!isActive} /></label><button className="btn-cta" type="button" disabled>Place bid</button>{isScheduled ? <small>Bidding unlocks when this auction opens.</small> : <small>Seller accounts cannot place bids on their own auctions.</small>}</div><div className={styles.bidFeed}><div><strong>Recent bid activity</strong><span>{auction.bids?.length || 0} recent</span></div>{auction.bids?.length ? <ul>{auction.bids.map((bid) => <li key={bid.id}><span><b>{bid.bidder.display_name}</b><small>{formatDateTime(bid.placed_at)}</small></span><strong>{formatPrice(bid.amount)}</strong></li>)}</ul> : <p>No bids have been placed yet.</p>}</div><dl><div><dt>Minimum increment</dt><dd>{formatPrice(auction.min_bid_increment)}</dd></div><div><dt>Starts</dt><dd>{formatDateTime(auction.start_time)}</dd></div><div><dt>Ends</dt><dd>{formatDateTime(auction.end_time)}</dd></div></dl>{isScheduled ? <button className="btn-outline" type="button" disabled={isCancelling} onClick={cancelAuctionHandler}>{isCancelling ? 'Cancelling...' : 'Cancel auction'}</button> : null}</aside>
+          <aside className={styles.auctionPanel}>
+            <div className={styles.bidSummary}>
+              <p className={styles.panelLabel}><span aria-hidden="true">●</span> LIVE · CURRENT HIGHEST BID</p>
+              <strong className={styles.price}>{formatPrice(highestBidAmount)}</strong>
+              <p>{auction.bid_count || 0} bids placed{auction.bids?.[0] ? ` · leading bidder: ${auction.bids[0].bidder.display_name}` : ''}</p>
+            </div>
+            <div className={styles.bidFeed}>
+              <div><strong>Recent bid activity</strong></div>
+              {auction.bids?.length ? (
+                <ul>
+                  {auction.bids.map((bid) => (
+                    <li key={bid.id}>
+                      <span className={styles.bidder}>
+                        <i aria-hidden="true">{bid.bidder.display_name.slice(0, 2).toUpperCase()}</i>
+                        <b>{bid.bidder.display_name}</b>
+                      </span>
+                      <strong>{formatPrice(bid.amount)}</strong>
+                      <small>{formatDateTime(bid.placed_at)}</small>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p>No bids have been placed yet.</p>}
+            </div>
+            <div className={styles.bidEntry}>
+              <label>Your bid<input type="number" min="0" step="0.01" value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} placeholder={formatPrice(highestBidAmount + Number(auction.min_bid_increment))} disabled={!isActive} /></label>
+              <small>Minimum next bid: {formatPrice(highestBidAmount + Number(auction.min_bid_increment))} (increment {formatPrice(auction.min_bid_increment)})</small>
+              <button className="btn-cta" type="button" disabled>Place bid</button>
+              {isScheduled ? <small>Bidding unlocks when this auction opens.</small> : <small>Seller accounts cannot place bids on their own auctions.</small>}
+            </div>
+            <dl><div><dt>Minimum increment</dt><dd>{formatPrice(auction.min_bid_increment)}</dd></div><div><dt>Starts</dt><dd>{formatDateTime(auction.start_time)}</dd></div><div><dt>Ends</dt><dd>{formatDateTime(auction.end_time)}</dd></div></dl>
+            {isScheduled ? <button className="btn-outline" type="button" disabled={isCancelling} onClick={cancelAuctionHandler}>{isCancelling ? 'Cancelling...' : 'Cancel auction'}</button> : null}
+          </aside>
         </section>
 
         <section className={styles.details}><div><p className={styles.eyebrow}>PRODUCT RECORD</p><h2>About this product</h2><p>{auction.product.description || 'No description has been added.'}</p></div><div><p className={styles.eyebrow}>SPECIFICATIONS</p><h2>Detailed specifications</h2>{auction.product.detailed_specs && Object.keys(auction.product.detailed_specs).length ? <dl className={styles.specifications}>{Object.entries(auction.product.detailed_specs).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl> : <p>No detailed specifications have been added.</p>}</div></section>

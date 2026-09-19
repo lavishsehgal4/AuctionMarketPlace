@@ -1,6 +1,6 @@
 const { getPrismaClient } = require('../config/supabase');
 
-const productSelection = {
+const productSelection = (now = new Date()) => ({
   id: true,
   title: true,
   description: true,
@@ -24,7 +24,7 @@ const productSelection = {
     },
   },
   auctions: {
-    where: { status: { in: ['SCHEDULED', 'ACTIVE'] } },
+    where: { status: { not: 'CANCELLED' }, end_time: { gt: now } },
     select: {
       id: true,
       status: true,
@@ -32,21 +32,21 @@ const productSelection = {
       end_time: true,
     },
   },
-};
+});
 
 const createProduct = (productData) => getPrismaClient().product.create({
   data: productData,
-  select: productSelection,
+  select: productSelection(),
 });
 
 const findProductById = (productId) => getPrismaClient().product.findUnique({
   where: { id: productId },
-  select: productSelection,
+  select: productSelection(),
 });
 
 const findProductsBySellerId = (sellerId) => getPrismaClient().product.findMany({
   where: { seller_id: sellerId },
-  select: productSelection,
+  select: productSelection(),
   orderBy: { created_at: 'desc' },
 });
 
@@ -62,7 +62,7 @@ const categoryExists = async (categoryId) => {
 const updateProduct = (productId, productData) => getPrismaClient().product.update({
   where: { id: productId },
   data: productData,
-  select: productSelection,
+  select: productSelection(),
 });
 
 const deleteProduct = (productId) => getPrismaClient().product.delete({

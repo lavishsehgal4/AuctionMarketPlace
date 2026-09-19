@@ -1,12 +1,13 @@
 const AppError = require('../errors/AppError');
 const auctionRepository = require('./auction.repository');
+const { getEffectiveAuctionStatus, getEffectiveStatusWhere } = require('./auction.state');
 
 const auctionStatuses = ['SCHEDULED', 'ACTIVE', 'ENDED', 'UNSOLD', 'CANCELLED'];
 const sortOrders = {
 	ending_soon: { end_time: 'asc' },
 	newest: { created_at: 'desc' },
 	oldest: { created_at: 'asc' },
-	highest_bid: { current_bid: 'desc' },
+	highest_bid: { highest_bid: { amount: 'desc' } },
 	starting_price: { starting_price: 'desc' },
 };
 const publicSortOrders = {
@@ -67,7 +68,6 @@ const createAuctionService = async (sellerId, auctionData) => {
 		product_id: productId,
 		seller_id: sellerId,
 		starting_price: normalizedStartingPrice,
-		current_bid: normalizedStartingPrice,
 		min_bid_increment: normalizedMinIncrement,
 		start_time: startDate,
 		end_time: endDate,
@@ -81,7 +81,7 @@ const getAuctionService = async (auctionId) => {
 		throw new AppError('Auction was not found', 404, 'AUCTION_NOT_FOUND');
 	}
 
-	return auction;
+	return { ...auction, status: getEffectiveAuctionStatus(auction) };
 };
 
 const getAuctionsService = async (query) => {
@@ -104,8 +104,8 @@ const getAuctionsService = async (query) => {
 	}
 
 	const timeFilter = view === 'LIVE'
-		? { start_time: { lte: now }, end_time: { gt: now }, status: { notIn: ['CANCELLED', 'ENDED', 'UNSOLD'] } }
-		: { start_time: { gt: now }, status: 'SCHEDULED' };
+		? getEffectiveStatusWhere('ACTIVE', now)
+		: getEffectiveStatusWhere('SCHEDULED', now);
 	const where = {
 		...timeFilter,
 		...(query.category_id ? { product: { category_id: query.category_id } } : {}),
@@ -116,9 +116,9 @@ const getAuctionsService = async (query) => {
 	]);
 
 	return {
-		auctions: auctions.map(({ _count, product, ...auction }) => ({
+		auctions: auctions.map(({ product, ...auction }) => ({
 			...auction,
-			bid_count: _count.bids,
+			status: getEffectiveAuctionStatus(auction, now),
 			product: {
 				title: product.title,
 				image_url: product.primary_image,
@@ -135,6 +135,7 @@ const getMyAuctionsService = async (sellerId, query) => {
 	const sort = query.sort || 'ending_soon';
 	const page = Number.parseInt(query.page || '1', 10);
 	const limit = Number.parseInt(query.limit || '10', 10);
+	const now = new Date();
 
 	if (status !== 'ALL' && !auctionStatuses.includes(status)) {
 		throw new AppError('status must be a valid auction status or ALL', 400, 'VALIDATION_ERROR');
@@ -148,21 +149,25 @@ const getMyAuctionsService = async (sellerId, query) => {
 		throw new AppError('page must be positive and limit must be between 1 and 50', 400, 'VALIDATION_ERROR');
 	}
 
-	const where = { seller_id: sellerId, ...(status === 'ALL' ? {} : { status }) };
+	const where = { seller_id: sellerId, ...(status === 'ALL' ? {} : getEffectiveStatusWhere(status, now)) };
+	const summaryQueries = auctionStatuses.map((auctionStatus) => auctionRepository.countSellerAuctions({
+		seller_id: sellerId,
+		...getEffectiveStatusWhere(auctionStatus, now),
+	}));
 	const [auctions, totalItems, statusCounts] = await Promise.all([
 		auctionRepository.findSellerAuctionList(where, sortOrders[sort], (page - 1) * limit, limit),
 		auctionRepository.countSellerAuctions(where),
-		auctionRepository.countSellerAuctionsByStatus(sellerId),
+		Promise.all(summaryQueries),
 	]);
 	const summary = Object.fromEntries(auctionStatuses.map((auctionStatus) => [auctionStatus.toLowerCase(), 0]));
-	statusCounts.forEach((entry) => {
-		summary[entry.status.toLowerCase()] = entry._count._all;
+	statusCounts.forEach((count, index) => {
+		summary[auctionStatuses[index].toLowerCase()] = count;
 	});
 
 	return {
-		auctions: auctions.map(({ _count, product, ...auction }) => ({
+		auctions: auctions.map(({ product, ...auction }) => ({
 			...auction,
-			bid_count: _count.bids,
+			status: getEffectiveAuctionStatus(auction, now),
 			product: {
 				title: product.title,
 				image_url: product.primary_image,
@@ -182,7 +187,7 @@ const getMyAuctionDetailService = async (sellerId, auctionId) => {
 		throw new AppError('Auction was not found', 404, 'AUCTION_NOT_FOUND');
 	}
 
-	return auction;
+	return { ...auction, status: getEffectiveAuctionStatus(auction) };
 };
 
 const cancelAuctionService = async (sellerId, auctionId) => {
@@ -192,7 +197,7 @@ const cancelAuctionService = async (sellerId, auctionId) => {
 		throw new AppError('Auction was not found', 404, 'AUCTION_NOT_FOUND');
 	}
 
-	if (auction.status !== 'SCHEDULED' || new Date() >= auction.start_time) {
+	if (auction.status === 'CANCELLED' || new Date() >= auction.start_time) {
 		throw new AppError('Auction can only be cancelled before its start time', 409, 'AUCTION_CANNOT_BE_CANCELLED');
 	}
 

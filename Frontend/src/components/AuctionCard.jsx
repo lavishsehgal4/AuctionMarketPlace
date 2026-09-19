@@ -11,14 +11,14 @@ export default function AuctionCard({ auction, currentUser }) {
     id,
     status,
     starting_price: startingPrice,
-    current_bid: currentBid,
+    highest_bid: highestBid,
     bid_count: bidCount,
     start_time: startTime,
     end_time: endTime,
     product,
   } = auction;
   const isLive = status === 'ACTIVE';
-  const price = isLive ? currentBid : startingPrice;
+  const price = isLive ? (highestBid?.amount ?? 0) : startingPrice;
   const timeLabel = isLive ? formatTimeLeft(endTime) : `Opens ${formatDateTime(startTime)}`;
   const actionLabel = isLive ? (currentUser ? 'View Auction' : 'Sign in to bid') : 'View Auction';
 

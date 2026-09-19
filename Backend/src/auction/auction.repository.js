@@ -3,7 +3,10 @@ const { getPrismaClient } = require('../config/supabase');
 const auctionSelection = {
 	id: true,
 	starting_price: true,
-	current_bid: true,
+	bid_count: true,
+	highest_bid: {
+		select: { id: true, amount: true },
+	},
 	min_bid_increment: true,
 	start_time: true,
 	end_time: true,
@@ -35,7 +38,8 @@ const sellerAuctionListSelection = {
 	id: true,
 	status: true,
 	starting_price: true,
-	current_bid: true,
+	bid_count: true,
+	highest_bid: { select: { amount: true } },
 	end_time: true,
 	product: {
 		select: {
@@ -45,14 +49,14 @@ const sellerAuctionListSelection = {
 			category: { select: { name: true } },
 		},
 	},
-	_count: { select: { bids: true } },
 };
 
 const publicAuctionListSelection = {
 	id: true,
 	status: true,
 	starting_price: true,
-	current_bid: true,
+	bid_count: true,
+	highest_bid: { select: { amount: true } },
 	min_bid_increment: true,
 	start_time: true,
 	end_time: true,
@@ -64,12 +68,10 @@ const publicAuctionListSelection = {
 			category: { select: { id: true, name: true } },
 		},
 	},
-	_count: { select: { bids: true } },
 };
 
 const sellerAuctionDetailSelection = {
 	...auctionSelection,
-	_count: { select: { bids: true } },
 	bids: {
 		orderBy: { placed_at: 'desc' },
 		take: 20,
@@ -82,15 +84,20 @@ const sellerAuctionDetailSelection = {
 	},
 };
 
-const findOwnedProductWithoutAuction = (productId, sellerId) => getPrismaClient().product.findFirst({
+const findOwnedProductWithoutAuction = (productId, sellerId, now = new Date()) => getPrismaClient().product.findFirst({
 	where: {
 		id: productId,
 		seller_id: sellerId,
 		auctions: {
-			none: { status: { in: ['SCHEDULED', 'ACTIVE'] } },
+			none: { status: { not: 'CANCELLED' }, end_time: { gt: now } },
 		},
 	},
 	select: { id: true },
+});
+
+const findAuctionRoomById = (auctionId) => getPrismaClient().auction.findUnique({
+	where: { id: auctionId },
+	select: { id: true, status: true, start_time: true, end_time: true },
 });
 
 const createAuction = (auctionData) => getPrismaClient().auction.create({
@@ -155,6 +162,7 @@ const activateScheduledAuctions = (now) => getPrismaClient().auction.updateMany(
 
 module.exports = {
 	findOwnedProductWithoutAuction,
+	findAuctionRoomById,
 	createAuction,
 	findAuctionById,
 	findPublicAuctionList,
