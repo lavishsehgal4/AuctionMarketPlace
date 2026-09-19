@@ -4,6 +4,7 @@ const app = require('./app');
 const { connectToSupabase, disconnectFromSupabase } = require('./config/supabase');
 const { registerJobs } = require('./jobs');
 const { createSocketServer } = require('./config/socket');
+const { registerAllSockets } = require('./sockets');
 
 // ============================================
 // Configuration from Environment Variables
@@ -26,7 +27,8 @@ async function startServer() {
     // ============================================
     const jobs = registerJobs();
     const server = http.createServer(app);
-    createSocketServer(server);
+    const io = createSocketServer(server);
+    registerAllSockets(io);
 
     server.listen(PORT, () => {
       console.log(`✅ Server is running on http://localhost:${PORT}`);

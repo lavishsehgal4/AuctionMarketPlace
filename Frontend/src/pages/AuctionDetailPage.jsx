@@ -8,14 +8,17 @@ import { getAuctionById } from '../api/auctionsApi';
 import { getBidsByAuctionId } from '../api/bidsApi';
 import BidForm from '../components/BidForm';
 import BidHistory from '../components/BidHistory';
+import AuctionRoomStatus from '../components/AuctionRoomStatus';
 import { formatTimeLeft, formatDateTime } from '../utils/time';
+import useAuctionRoom from '../hooks/useAuctionRoom';
 import styles from './AuctionDetailPage.module.css';
 
-export default function AuctionDetailPage() {
+export default function AuctionDetailPage({ currentUser }) {
   const { id } = useParams();
   const [auction, setAuction] = useState(null);
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const roomStatus = useAuctionRoom(id, currentUser);
 
   useEffect(() => {
     Promise.all([getAuctionById(id), getBidsByAuctionId(id)]).then(
@@ -51,6 +54,7 @@ export default function AuctionDetailPage() {
         <span aria-hidden="true"> / </span>
         <span>{auction.title}</span>
       </nav>
+      <AuctionRoomStatus roomStatus={roomStatus} />
 
       <div className={styles.layout}>
         {/* Left — image + description */}

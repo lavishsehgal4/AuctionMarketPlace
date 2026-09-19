@@ -134,7 +134,7 @@ export default function App() {
           path="/seller/auctions/:id"
           element={
             <RequireAuth currentUser={currentUser}>
-              <SellerAuctionDetailPage />
+              <SellerAuctionDetailPage currentUser={currentUser} />
             </RequireAuth>
           }
         />

@@ -1,0 +1,33 @@
+.status {
+  align-items: center;
+  display: flex;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.dot {
+  border-radius: 50%;
+  flex: 0 0 12px;
+  height: 12px;
+  width: 12px;
+}
+
+.connected {
+  color: #16743a;
+}
+
+.connected .dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px #dcfce7;
+}
+
+.disconnected {
+  color: #b42318;
+}
+
+.disconnected .dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 4px #fee2e2;
+}
