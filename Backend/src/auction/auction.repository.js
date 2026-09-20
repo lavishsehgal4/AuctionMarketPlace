@@ -170,6 +170,29 @@ const activateScheduledAuctions = (now) => getPrismaClient().auction.updateMany(
 	data: { status: 'ACTIVE' },
 });
 
+const finalizeExpiredAuctions = async (now) => {
+	const [ended, unsold] = await getPrismaClient().$transaction([
+		getPrismaClient().auction.updateMany({
+			where: {
+				status: { in: ['SCHEDULED', 'ACTIVE'] },
+				end_time: { lte: now },
+				highest_bid: { isNot: null },
+			},
+			data: { status: 'ENDED' },
+		}),
+		getPrismaClient().auction.updateMany({
+			where: {
+				status: { in: ['SCHEDULED', 'ACTIVE'] },
+				end_time: { lte: now },
+				highest_bid: { is: null },
+			},
+			data: { status: 'UNSOLD' },
+		}),
+	]);
+
+	return { ended: ended.count, unsold: unsold.count };
+};
+
 module.exports = {
 	findOwnedProductWithoutAuction,
 	findAuctionRoomById,
@@ -184,4 +207,5 @@ module.exports = {
 	findOwnedAuctionById,
 	cancelAuction,
 	activateScheduledAuctions,
+	finalizeExpiredAuctions,
 };

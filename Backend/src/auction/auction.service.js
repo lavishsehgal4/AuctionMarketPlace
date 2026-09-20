@@ -205,6 +205,7 @@ const cancelAuctionService = async (sellerId, auctionId) => {
 };
 
 const activateScheduledAuctionsService = () => auctionRepository.activateScheduledAuctions(new Date());
+const finalizeExpiredAuctionsService = () => auctionRepository.finalizeExpiredAuctions(new Date());
 
 module.exports = {
 	createAuctionService,
@@ -214,4 +215,5 @@ module.exports = {
 	getMyAuctionDetailService,
 	cancelAuctionService,
 	activateScheduledAuctionsService,
+	finalizeExpiredAuctionsService,
 };

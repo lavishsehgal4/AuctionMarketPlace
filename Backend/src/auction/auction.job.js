@@ -1,11 +1,19 @@
 const cron = require('node-cron');
-const { activateScheduledAuctionsService } = require('./auction.service');
+const { activateScheduledAuctionsService, finalizeExpiredAuctionsService } = require('./auction.service');
 
 const runScheduledAuctionActivation = async () => {
   const result = await activateScheduledAuctionsService();
 
   if (result.count > 0) {
     console.log(`Activated ${result.count} scheduled auction(s)`);
+  }
+};
+
+const runExpiredAuctionFinalization = async () => {
+  const result = await finalizeExpiredAuctionsService();
+
+  if (result.ended > 0 || result.unsold > 0) {
+    console.log(`Finalized ${result.ended} ended and ${result.unsold} unsold auction(s)`);
   }
 };
 
@@ -19,8 +27,9 @@ const registerAuctionJobs = () => {
     isRunning = true;
     try {
       await runScheduledAuctionActivation();
+      await runExpiredAuctionFinalization();
     } catch (error) {
-      console.error('Scheduled auction activation failed:', error.message);
+      console.error('Auction lifecycle job failed:', error.message);
     } finally {
       isRunning = false;
     }
