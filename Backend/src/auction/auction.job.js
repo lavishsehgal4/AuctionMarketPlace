@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { activateScheduledAuctionsService, finalizeExpiredAuctionsService } = require('./auction.service');
 const { AUCTION_LIFECYCLE_CRON_SCHEDULE } = require('../config/constants');
+const { emitAuctionsEnded } = require('../events/auction.events');
 
 const runScheduledAuctionActivation = async () => {
   const result = await activateScheduledAuctionsService();
@@ -15,6 +16,7 @@ const runExpiredAuctionFinalization = async () => {
 
   if (result.ended > 0 || result.unsold > 0) {
     console.log(`Finalized ${result.ended} ended and ${result.unsold} unsold auction(s)`);
+    emitAuctionsEnded(result.auctionIds);
   }
 };
 

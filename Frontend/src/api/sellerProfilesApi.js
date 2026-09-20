@@ -37,3 +37,12 @@ export const updateMySellerProfile = async (profile) => {
     throw error.response?.data || { message: 'Unable to update public seller profile' };
   }
 };
+
+export const createSellerReview = async (sellerId, review) => {
+  try {
+    const response = await axiosInstance.post(`${API_BASE}/${sellerId}/reviews`, review);
+    return response.data.data.review;
+  } catch (error) {
+    throw error.response?.data || { message: 'Unable to submit seller review' };
+  }
+};

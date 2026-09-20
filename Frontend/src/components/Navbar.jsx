@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { getNotifications } from '../api/notificationsApi';
 import './Navbar.css';
 
 // ============================================
@@ -10,6 +12,23 @@ import './Navbar.css';
 
 function Navbar({ currentUser, onLogout }) {
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return undefined;
+    }
+    let isCurrent = true;
+    const loadUnreadCount = () => getNotifications({ page: 1, limit: 1, unread_only: true })
+      .then((result) => isCurrent && setUnreadCount(result.unread_count || 0))
+      .catch(() => isCurrent && setUnreadCount(0));
+    loadUnreadCount();
+    const interval = window.setInterval(loadUnreadCount, 45000);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
+  }, [currentUser]);
 
   const handleLogout = async () => {
     await onLogout();
@@ -38,6 +57,7 @@ function Navbar({ currentUser, onLogout }) {
                   <a href="/seller#profile" className="nav-link">Profile</a>
                 </>
               )}
+              <NavLink to="/notifications" className="nav-link notification-link">Notifications{unreadCount > 0 ? <span>{unreadCount > 99 ? '99+' : unreadCount}</span> : null}</NavLink>
               <span className="welcome-text">{currentUser.display_name}</span>
               <button onClick={handleLogout} className="logout-btn">
                 Logout

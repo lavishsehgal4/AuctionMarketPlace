@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPublicAuction } from '../api/auctionsApi';
+import { createSellerReview } from '../api/sellerProfilesApi';
 import socket from '../api/socket';
 import AuctionRoomStatus from '../components/AuctionRoomStatus';
 import useAuctionRoom from '../hooks/useAuctionRoom';
@@ -12,6 +13,7 @@ const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((pa
 
 export default function AuctionDetailPage({ currentUser }) {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [auction, setAuction] = useState(null);
   const [selectedImage, setSelectedImage] = useState('');
   const [bidAmount, setBidAmount] = useState('');
@@ -21,6 +23,11 @@ export default function AuctionDetailPage({ currentUser }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [now, setNow] = useState(0);
+  const [reviewRating, setReviewRating] = useState('5');
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const roomStatus = useAuctionRoom(id, currentUser);
 
   useEffect(() => {
@@ -63,6 +70,8 @@ export default function AuctionDetailPage({ currentUser }) {
   const minimumBid = (highestBidAmount || Number(auction.starting_price)) + Number(auction.min_bid_increment);
   const images = [auction.product.primary_image, ...(auction.product.additional_images || [])].filter(Boolean);
   const countdown = now === 0 ? 'Updating...' : formatTimeLeft(auction.end_time);
+  const canReview = currentUser?.account_type === 'BIDDER' && currentUser.id === auction.winner?.id && auction.status === 'ENDED';
+  const isReviewOpen = canReview && searchParams.get('review') === '1';
 
   function submitBid(amount) {
     setBidError('');
@@ -82,6 +91,22 @@ export default function AuctionDetailPage({ currentUser }) {
       setBidAmount('');
       setBidSuccess('Bid accepted. You are now the highest bidder.');
     });
+  }
+
+  async function submitReview(event) {
+    event.preventDefault();
+    setReviewError('');
+    setReviewSuccess('');
+    setIsSubmittingReview(true);
+    try {
+      await createSellerReview(auction.seller.id, { auction_id: auction.id, rating: Number(reviewRating), comment: reviewComment.trim() || undefined });
+      setReviewSuccess('Your review has been submitted.');
+      setReviewComment('');
+    } catch (requestError) {
+      setReviewError(requestError.message || 'Unable to submit your review.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
   }
 
   return (
@@ -105,6 +130,7 @@ export default function AuctionDetailPage({ currentUser }) {
         </section>
 
         <section className={styles.details}><div><p className={styles.eyebrow}>PRODUCT RECORD</p><h2>About this product</h2><p>{auction.product.description || 'No description has been added.'}</p></div><div><p className={styles.eyebrow}>SPECIFICATIONS</p><h2>Detailed specifications</h2>{auction.product.detailed_specs && Object.keys(auction.product.detailed_specs).length ? <dl className={styles.specifications}>{Object.entries(auction.product.detailed_specs).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl> : <p>No detailed specifications have been added.</p>}</div></section>
+        {isReviewOpen ? <section className={styles.reviewPanel}><p className={styles.eyebrow}>WINNING BIDDER FEEDBACK</p><h2>Review {auction.seller.display_name}</h2><p>Your feedback is published on this auctioneer's public profile.</p><form onSubmit={submitReview}><label>Rating<select value={reviewRating} onChange={(event) => setReviewRating(event.target.value)}><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Fair</option><option value="2">2 - Poor</option><option value="1">1 - Very poor</option></select></label><label>Review<textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} maxLength="2000" rows="4" placeholder="Share your experience with this auctioneer." /></label><button className="btn-cta" type="submit" disabled={isSubmittingReview}>{isSubmittingReview ? 'Submitting review...' : 'Submit review'}</button>{reviewError ? <small className={styles.reviewError}>{reviewError}</small> : null}{reviewSuccess ? <small className={styles.reviewSuccess}>{reviewSuccess}</small> : null}</form></section> : null}
       </div>
     </main>
   );

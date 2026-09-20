@@ -40,6 +40,7 @@ model User {
   seller_profile  SellerProfile?
   written_seller_reviews SellerReview[] @relation("ReviewAuthor")
   received_seller_reviews SellerReview[] @relation("ReviewedSeller")
+  notifications Notification[]
 
   @@index([account_status])
   @@index([created_at])
@@ -146,6 +147,7 @@ model Auction {
   highest_bid Bid? @relation("AuctionHighestBid", fields: [highest_bid_id], references: [id], onDelete: SetNull)
   bids        Bid[] @relation("AuctionBids")
   seller_review SellerReview?
+  notifications Notification[]
 
   @@index([seller_id])
   @@index([product_id, status])
@@ -201,6 +203,23 @@ model SellerReview {
 
   @@index([seller_id, created_at])
   @@index([reviewer_id, created_at])
+}
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  user_id    String           @db.Uuid
+  auction_id String?          @db.Uuid
+  type       NotificationType
+  title      String           @db.VarChar(150)
+  message    String           @db.Text
+  read_at    DateTime?
+  created_at DateTime         @default(now())
+
+  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  auction Auction? @relation(fields: [auction_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, auction_id, type])
+  @@index([user_id, read_at, created_at])
 }
 
 // ============================================================
@@ -262,6 +281,13 @@ enum KycStatus {
 enum AccountType {
   BIDDER
   SELLER
+}
+
+enum NotificationType {
+  AUCTION_WON
+  AUCTION_LOST
+  AUCTION_ENDED
+  AUCTION_UNSOLD
 }
 
 // ============================================================

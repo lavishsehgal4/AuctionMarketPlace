@@ -13,6 +13,7 @@ import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerAuctionDetailPage from './pages/SellerAuctionDetailPage';
 import AuctioneersPage from './pages/AuctioneersPage';
 import SellerProfilePage from './pages/SellerProfilePage';
+import NotificationsPage from './pages/NotificationsPage';
 import { logoutUser, refreshAccessToken } from './api/authApi';
 import socket from './api/socket';
 
@@ -140,6 +141,7 @@ export default function App() {
         />
         <Route path="/auctioneers" element={<AuctioneersPage />} />
         <Route path="/auctioneers/:sellerId" element={<SellerProfilePage />} />
+        <Route path="/notifications" element={<RequireAuth currentUser={currentUser}><NotificationsPage /></RequireAuth>} />
 
         <Route
           path="/seller"

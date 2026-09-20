@@ -80,6 +80,9 @@
   font-size: 13px;
 }
 
+.notification-link { align-items: center; display: flex; gap: 5px; }
+.notification-link span { align-items: center; background: #d96f2b; border-radius: 50%; color: #fff; display: inline-flex; font-size: 10px; font-weight: 800; height: 18px; justify-content: center; min-width: 18px; padding: 0 4px; }
+
 .welcome-text {
   color: #52675e;
   font-size: 0.95rem;

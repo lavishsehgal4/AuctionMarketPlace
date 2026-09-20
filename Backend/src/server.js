@@ -5,6 +5,7 @@ const { connectToSupabase, disconnectFromSupabase } = require('./config/supabase
 const { registerJobs } = require('./jobs');
 const { createSocketServer } = require('./config/socket');
 const { registerAllSockets } = require('./sockets');
+const { registerAuctionEventHandlers } = require('./events/auction.eventHandlers');
 
 // ============================================
 // Configuration from Environment Variables
@@ -21,6 +22,7 @@ async function startServer() {
     // Step 1: Connect to Supabase Database
     // ============================================
     await connectToSupabase();
+    registerAuctionEventHandlers();
 
     // ============================================
     // Step 2: Start Express Server

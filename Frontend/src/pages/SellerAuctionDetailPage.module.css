@@ -158,4 +158,5 @@
 .bidError { color: #b42318; font-weight: 700; }
 .bidSuccess { color: #16743a; font-weight: 700; }
 .cancelNotice { color: #8d887c; font-size: 13px; line-height: 1.4; margin: 0 24px 24px; }
+.reviewPanel { background: #fffdf7; border: 1px solid #d7d1c6; margin-top: 30px; max-width: 700px; padding: 24px; }.reviewPanel h2 { color: #44291f; font-family: Georgia, 'Times New Roman', serif; font-size: 26px; margin: 4px 0 6px; }.reviewPanel > p:not(.eyebrow) { color: #6d6b62; }.reviewPanel form { display: grid; gap: 14px; margin-top: 18px; }.reviewPanel form button { justify-self: start; }.reviewError { color: #b42318; font-weight: 700; }.reviewSuccess { color: #16743a; font-weight: 700; }
 @media (max-width: 560px) { .topBar { align-items: stretch; flex-direction: column; }.topBar .btn-outline { width: 100%; } }

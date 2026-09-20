@@ -188,26 +188,17 @@ const activateScheduledAuctions = (now) => getPrismaClient().auction.updateMany(
 });
 
 const finalizeExpiredAuctions = async (now) => {
-	const [ended, unsold] = await getPrismaClient().$transaction([
-		getPrismaClient().auction.updateMany({
-			where: {
-				status: { in: ['SCHEDULED', 'ACTIVE'] },
-				end_time: { lte: now },
-				highest_bid: { isNot: null },
-			},
-			data: { status: 'ENDED' },
-		}),
-		getPrismaClient().auction.updateMany({
-			where: {
-				status: { in: ['SCHEDULED', 'ACTIVE'] },
-				end_time: { lte: now },
-				highest_bid: { is: null },
-			},
-			data: { status: 'UNSOLD' },
-		}),
-	]);
-
-	return { ended: ended.count, unsold: unsold.count };
+	const finalized = await getPrismaClient().$queryRaw`
+		UPDATE "Auction"
+		SET "status" = CASE WHEN "highest_bid_id" IS NULL THEN 'UNSOLD'::"AuctionStatus" ELSE 'ENDED'::"AuctionStatus" END,
+			"updated_at" = CURRENT_TIMESTAMP
+		WHERE "status" IN ('SCHEDULED'::"AuctionStatus", 'ACTIVE'::"AuctionStatus")
+			AND "end_time" <= ${now}
+		RETURNING "id", "status";
+	`;
+	const endedAuctionIds = finalized.filter((auction) => auction.status === 'ENDED').map((auction) => auction.id);
+	const unsoldAuctionIds = finalized.filter((auction) => auction.status === 'UNSOLD').map((auction) => auction.id);
+	return { ended: endedAuctionIds.length, unsold: unsoldAuctionIds.length, auctionIds: [...endedAuctionIds, ...unsoldAuctionIds] };
 };
 
 module.exports = {
