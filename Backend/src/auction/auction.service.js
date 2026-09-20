@@ -191,17 +191,14 @@ const getMyAuctionDetailService = async (sellerId, auctionId) => {
 };
 
 const cancelAuctionService = async (sellerId, auctionId) => {
-	const auction = await auctionRepository.findOwnedAuctionById(auctionId, sellerId);
+	const cancellationDeadline = new Date(Date.now() + 5 * 60 * 1000);
+	const result = await auctionRepository.cancelScheduledAuction(auctionId, sellerId, cancellationDeadline);
 
-	if (!auction) {
-		throw new AppError('Auction was not found', 404, 'AUCTION_NOT_FOUND');
+	if (result.count === 0) {
+		throw new AppError('Only scheduled auctions starting more than five minutes from now can be cancelled', 409, 'AUCTION_CANNOT_BE_CANCELLED');
 	}
 
-	if (auction.status === 'CANCELLED' || new Date() >= auction.start_time) {
-		throw new AppError('Auction can only be cancelled before its start time', 409, 'AUCTION_CANNOT_BE_CANCELLED');
-	}
-
-	return auctionRepository.cancelAuction(auction.id);
+	return auctionRepository.findAuctionById(auctionId);
 };
 
 const activateScheduledAuctionsService = () => auctionRepository.activateScheduledAuctions(new Date());

@@ -157,4 +157,5 @@
 .quickBid:hover { background: #dff1e6; border-color: #3c9863; }
 .bidError { color: #b42318; font-weight: 700; }
 .bidSuccess { color: #16743a; font-weight: 700; }
+.cancelNotice { color: #8d887c; font-size: 13px; line-height: 1.4; margin: 0 24px 24px; }
 @media (max-width: 560px) { .topBar { align-items: stretch; flex-direction: column; }.topBar .btn-outline { width: 100%; } }

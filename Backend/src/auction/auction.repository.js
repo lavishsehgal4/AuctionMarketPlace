@@ -156,10 +156,14 @@ const findOwnedAuctionById = (auctionId, sellerId) => getPrismaClient().auction.
 	select: { id: true, start_time: true, status: true },
 });
 
-const cancelAuction = (auctionId) => getPrismaClient().auction.update({
-	where: { id: auctionId },
+const cancelScheduledAuction = (auctionId, sellerId, cancellationDeadline) => getPrismaClient().auction.updateMany({
+	where: {
+		id: auctionId,
+		seller_id: sellerId,
+		status: 'SCHEDULED',
+		start_time: { gt: cancellationDeadline },
+	},
 	data: { status: 'CANCELLED' },
-	select: auctionSelection,
 });
 
 const activateScheduledAuctions = (now) => getPrismaClient().auction.updateMany({
@@ -205,7 +209,7 @@ module.exports = {
 	countSellerAuctionsByStatus,
 	findAuctionDetailBySellerId,
 	findOwnedAuctionById,
-	cancelAuction,
+	cancelScheduledAuction,
 	activateScheduledAuctions,
 	finalizeExpiredAuctions,
 };

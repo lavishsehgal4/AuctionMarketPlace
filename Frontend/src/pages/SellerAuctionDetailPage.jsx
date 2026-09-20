@@ -77,6 +77,7 @@ export default function SellerAuctionDetailPage({ currentUser }) {
 
   const isScheduled = auction.status === 'SCHEDULED';
   const isActive = auction.status === 'ACTIVE';
+  const canCancel = isScheduled && new Date(auction.start_time).getTime() - now > 5 * 60 * 1000;
   const targetTime = isScheduled ? auction.start_time : auction.end_time;
   const countdown = now === 0 ? 'Updating...' : new Date(targetTime) > now ? formatTimeLeft(targetTime) : isScheduled ? 'Opening now' : 'Auction ended';
   const images = [auction.product.primary_image, ...(auction.product.additional_images || [])].filter(Boolean);
@@ -125,7 +126,8 @@ export default function SellerAuctionDetailPage({ currentUser }) {
               {isScheduled ? <small>Bidding unlocks when this auction opens.</small> : <small>Seller accounts cannot place bids on their own auctions.</small>}
             </div>
             <dl><div><dt>Minimum increment</dt><dd>{formatPrice(auction.min_bid_increment)}</dd></div><div><dt>Starts</dt><dd>{formatDateTime(auction.start_time)}</dd></div><div><dt>Ends</dt><dd>{formatDateTime(auction.end_time)}</dd></div></dl>
-            {isScheduled ? <button className="btn-outline" type="button" disabled={isCancelling} onClick={cancelAuctionHandler}>{isCancelling ? 'Cancelling...' : 'Cancel auction'}</button> : null}
+            {canCancel ? <button className="btn-outline" type="button" disabled={isCancelling} onClick={cancelAuctionHandler}>{isCancelling ? 'Cancelling...' : 'Cancel auction'}</button> : null}
+            {isScheduled && !canCancel ? <p className={styles.cancelNotice}>This auction can no longer be cancelled within five minutes of its start time.</p> : null}
           </aside>
         </section>
 
