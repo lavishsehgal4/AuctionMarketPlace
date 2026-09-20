@@ -73,10 +73,11 @@
   gap: 34px;
 }
 
-.modeTabs button {
+.modeTabs button, .modeLink {
   background: transparent;
   border-radius: 0;
   color: #53635b;
+  text-decoration: none;
   font-weight: 700;
   padding: 12px 2px;
 }
@@ -86,9 +87,8 @@
   color: #183b3a !important;
 }
 
-.modeDisabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+.modeLink:hover {
+  color: #183b3a;
 }
 
 .categoryTabs {

@@ -6,6 +6,10 @@ const {
   logoutUserService,
   getCurrentUserService,
 } = require('./auth.service');
+const {
+  ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
+  REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+} = require('../config/constants');
 
 // ============================================
 // Auth Controller
@@ -28,14 +32,14 @@ const registerUserController = asyncHandler(async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
     });
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
     });
 
   return res.status(201).json({
@@ -59,14 +63,14 @@ const loginUserController = asyncHandler(async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
     });
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
     });
 
   return res.status(200).json({
@@ -91,7 +95,7 @@ const refreshAccessTokenController = asyncHandler(async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
     });
 
   return res.status(200).json({

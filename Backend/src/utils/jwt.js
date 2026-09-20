@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { ACCESS_TOKEN_EXPIRES_IN } = require('../config/constants');
 
 // ============================================
 // JWT Utility Functions
@@ -30,7 +31,7 @@ const generateAccessToken = (userId, email, displayName) => {
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '24h', // Access token expires in 24 hours
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
       algorithm: 'HS256',
     });
 

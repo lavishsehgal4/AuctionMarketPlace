@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AuctionCard from '../components/AuctionCard';
 import Footer from '../components/Footer';
 import { getPublicAuctions } from '../api/auctionsApi';
@@ -58,9 +59,7 @@ export default function BidderHomePage({ currentUser }) {
       <section className={styles.discovery} aria-label="Auction discovery">
         <div className={styles.modeTabs} role="tablist" aria-label="Browse content">
           <button className={styles.modeActive} role="tab" aria-selected="true">Auctions</button>
-          <button className={styles.modeDisabled} type="button" disabled title="Auctioneers will be available soon">
-            Auctioneers
-          </button>
+          <Link className={styles.modeLink} to="/auctioneers">Auctioneers</Link>
         </div>
 
         <div className={styles.categoryTabs} role="tablist" aria-label="Filter auctions by category">

@@ -27,7 +27,12 @@ const auctionSelection = {
 		},
 	},
 	seller: {
-		select: { id: true, display_name: true },
+		select: {
+			id: true,
+			display_name: true,
+			avatar_url: true,
+			seller_profile: { select: { banner_url: true, rating_average: true, rating_count: true } },
+		},
 	},
 	winner: {
 		select: { id: true, display_name: true },
@@ -57,6 +62,14 @@ const sellerAuctionListSelection = {
 			primary_image: true,
 			condition: true,
 			category: { select: { name: true } },
+		},
+	},
+	seller: {
+		select: {
+			id: true,
+			display_name: true,
+			avatar_url: true,
+			seller_profile: { select: { banner_url: true, rating_average: true, rating_count: true } },
 		},
 	},
 };

@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import { getCategories } from '../api/categoriesApi';
 import { createProduct, getMyProducts } from '../api/productsApi';
 import { getMyAuctions, registerAuction } from '../api/auctionsApi';
+import { getSellerProfile, updateMySellerProfile } from '../api/sellerProfilesApi';
 import styles from './SellerDashboardPage.module.css';
 
 const emptyProduct = { title: '', category_id: '', condition: 'USED', description: '', primary_image: '', additional_images: [''] };
@@ -49,6 +50,10 @@ export default function SellerDashboardPage({ currentUser }) {
   const [selectedProductDetail, setSelectedProductDetail] = useState(null);
   const [selectedProductImage, setSelectedProductImage] = useState('');
   const [detailedSpecs, setDetailedSpecs] = useState([]);
+  const [profileForm, setProfileForm] = useState({ short_bio: '', bio: '', banner_url: '', website_url: '' });
+  const [profileError, setProfileError] = useState('');
+  const [profileMessage, setProfileMessage] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     Promise.all([getMyProducts(), getCategories()])
@@ -76,6 +81,22 @@ export default function SellerDashboardPage({ currentUser }) {
 
     return () => { isCurrent = false; };
   }, [auctionStatus, auctionSort, auctionPage]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    getSellerProfile(currentUser.id)
+      .then((seller) => {
+        if (!isCurrent) return;
+        setProfileForm({
+          short_bio: seller.seller_profile?.short_bio || '',
+          bio: seller.seller_profile?.bio || '',
+          banner_url: seller.seller_profile?.banner_url || '',
+          website_url: seller.seller_profile?.website_url || '',
+        });
+      })
+      .catch(() => {});
+    return () => { isCurrent = false; };
+  }, [currentUser.id]);
 
   const readyProducts = products.filter((product) => product.registration_status === 'READY');
   const visibleProducts = products.filter((product) => product.registration_status === productStatus);
@@ -217,6 +238,26 @@ export default function SellerDashboardPage({ currentUser }) {
     }
   }
 
+  async function saveProfileHandler(event) {
+    event.preventDefault();
+    setProfileError('');
+    setProfileMessage('');
+    setIsSavingProfile(true);
+    try {
+      await updateMySellerProfile({
+        short_bio: profileForm.short_bio.trim() || undefined,
+        bio: profileForm.bio.trim() || undefined,
+        banner_url: profileForm.banner_url.trim() || undefined,
+        website_url: profileForm.website_url.trim() || undefined,
+      });
+      setProfileMessage('Your public auctioneer profile is updated.');
+    } catch (error) {
+      setProfileError(error.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.hero} id="dashboard">
@@ -305,7 +346,16 @@ export default function SellerDashboardPage({ currentUser }) {
         </section>
 
         <section className={styles.profile} id="profile">
-          <p className={styles.eyebrow}>ACCOUNT</p><h2>{currentUser.display_name}</h2><p>Seller profile and KYC details will connect to `/api/v1/auth/me` when profile integration begins.</p>
+          <p className={styles.eyebrow}>PUBLIC AUCTIONEER PROFILE</p><h2>{currentUser.display_name}</h2><p>This information appears in the auctioneer directory and on your public profile.</p>
+          {profileError ? <p className={styles.error}>{profileError}</p> : null}
+          {profileMessage ? <p className={styles.note}>{profileMessage}</p> : null}
+          <form className={styles.profileForm} onSubmit={saveProfileHandler}>
+            <label className={styles.profileFull}>Short bio (up to 5 words)<input value={profileForm.short_bio} onChange={(event) => setProfileForm({ ...profileForm, short_bio: event.target.value })} maxLength="150" placeholder="Best auctions of Canada" /></label>
+            <label className={styles.profileFull}>Bio<textarea value={profileForm.bio} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} maxLength="2000" rows="4" placeholder="Tell bidders what you specialise in." /></label>
+            <label>Banner image URL<input type="url" value={profileForm.banner_url} onChange={(event) => setProfileForm({ ...profileForm, banner_url: event.target.value })} placeholder="https://example.com/banner.jpg" /></label>
+            <label>Website URL<input type="url" value={profileForm.website_url} onChange={(event) => setProfileForm({ ...profileForm, website_url: event.target.value })} placeholder="https://your-site.com" /></label>
+            <button className="btn-primary" type="submit" disabled={isSavingProfile}>{isSavingProfile ? 'Saving profile...' : 'Save public profile'}</button>
+          </form>
         </section>
       </div>
       {isProductModalOpen ? (

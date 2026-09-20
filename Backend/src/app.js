@@ -13,6 +13,7 @@ const categoryRoutes = require('./categoryManagement/category.routes');
 // Import product routes
 const productRoutes = require('./product/product.routes');
 const auctionRoutes = require('./auction/auction.routes');
+const sellerProfileRoutes = require('./sellerProfile/sellerProfile.routes');
 const AppError = require('./errors/AppError');
 const errorHandler = require('./errors/errorHandler');
 
@@ -53,6 +54,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/auctions', auctionRoutes);
+app.use('/api/v1/sellers', sellerProfileRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

@@ -102,10 +102,10 @@ const emailExists = async (email) => {
  * Store refresh token in database
  * @param {string} userId - User's UUID
  * @param {string} hashedToken - Hashed refresh token
- * @param {number} expiresInDays - Days until token expires (default 7)
+ * @param {number} expiresInDays - Days until token expires
  * @returns {Promise<Object>} Created refresh token record
  */
-const storeRefreshToken = (userId, hashedToken, expiresInDays = 7) => {
+const storeRefreshToken = (userId, hashedToken, expiresInDays) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 

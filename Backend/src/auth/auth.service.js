@@ -2,6 +2,7 @@ const authRepository = require('./auth.repository');
 const { hashPassword, comparePassword, validatePasswordStrength, generateRefreshToken } = require('../utils/bcrypt');
 const { generateAccessToken } = require('../utils/jwt');
 const AppError = require('../errors/AppError');
+const { REFRESH_TOKEN_EXPIRES_IN_DAYS } = require('../config/constants');
 
 // ============================================
 // Auth Service
@@ -51,7 +52,7 @@ const registerUserService = async (credentials) => {
 
   const { plainToken: refreshToken, hashedToken: refreshTokenHash } = generateRefreshToken();
 
-  await authRepository.storeRefreshToken(user.id, refreshTokenHash);
+  await authRepository.storeRefreshToken(user.id, refreshTokenHash, REFRESH_TOKEN_EXPIRES_IN_DAYS);
 
   await authRepository.updateLastLogin(user.id);
 
@@ -99,7 +100,7 @@ const loginUserService = async (credentials) => {
 
   const { plainToken: refreshToken, hashedToken: refreshTokenHash } = generateRefreshToken();
 
-  await authRepository.storeRefreshToken(user.id, refreshTokenHash);
+  await authRepository.storeRefreshToken(user.id, refreshTokenHash, REFRESH_TOKEN_EXPIRES_IN_DAYS);
 
   await authRepository.updateLastLogin(user.id);
 

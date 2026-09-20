@@ -11,6 +11,8 @@ import BidderHomePage from './pages/BidderHomePage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerAuctionDetailPage from './pages/SellerAuctionDetailPage';
+import AuctioneersPage from './pages/AuctioneersPage';
+import SellerProfilePage from './pages/SellerProfilePage';
 import { logoutUser, refreshAccessToken } from './api/authApi';
 import socket from './api/socket';
 
@@ -136,6 +138,8 @@ export default function App() {
           path="/auction/:id"
           element={<AuctionDetailPage currentUser={currentUser} />}
         />
+        <Route path="/auctioneers" element={<AuctioneersPage />} />
+        <Route path="/auctioneers/:sellerId" element={<SellerProfilePage />} />
 
         <Route
           path="/seller"

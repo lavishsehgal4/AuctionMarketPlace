@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const { activateScheduledAuctionsService, finalizeExpiredAuctionsService } = require('./auction.service');
+const { AUCTION_LIFECYCLE_CRON_SCHEDULE } = require('../config/constants');
 
 const runScheduledAuctionActivation = async () => {
   const result = await activateScheduledAuctionsService();
@@ -21,7 +22,7 @@ const registerAuctionJobs = () => {
   let isRunning = false;
 
   // Five fields run at the beginning of every minute, never at a seconds offset.
-  const task = cron.schedule('* * * * *', async () => {
+  const task = cron.schedule(AUCTION_LIFECYCLE_CRON_SCHEDULE, async () => {
     if (isRunning) return;
 
     isRunning = true;

@@ -1,6 +1,7 @@
 const AppError = require('../errors/AppError');
 const auctionRepository = require('./auction.repository');
 const { getEffectiveAuctionStatus, getEffectiveStatusWhere } = require('./auction.state');
+const { AUCTION_CANCELLATION_WINDOW_MS } = require('../config/constants');
 
 const auctionStatuses = ['SCHEDULED', 'ACTIVE', 'ENDED', 'UNSOLD', 'CANCELLED'];
 const sortOrders = {
@@ -191,7 +192,7 @@ const getMyAuctionDetailService = async (sellerId, auctionId) => {
 };
 
 const cancelAuctionService = async (sellerId, auctionId) => {
-	const cancellationDeadline = new Date(Date.now() + 5 * 60 * 1000);
+	const cancellationDeadline = new Date(Date.now() + AUCTION_CANCELLATION_WINDOW_MS);
 	const result = await auctionRepository.cancelScheduledAuction(auctionId, sellerId, cancellationDeadline);
 
 	if (result.count === 0) {

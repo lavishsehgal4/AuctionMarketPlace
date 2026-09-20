@@ -37,6 +37,9 @@ model User {
   seller_auctions Auction[] @relation("SellerAuctions")
   won_auctions    Auction[] @relation("WonAuctions")
   placed_bids     Bid[]     @relation("PlacedBids")
+  seller_profile  SellerProfile?
+  written_seller_reviews SellerReview[] @relation("ReviewAuthor")
+  received_seller_reviews SellerReview[] @relation("ReviewedSeller")
 
   @@index([account_status])
   @@index([created_at])
@@ -142,12 +145,62 @@ model Auction {
   winner  User?   @relation("WonAuctions", fields: [winner_id], references: [id])
   highest_bid Bid? @relation("AuctionHighestBid", fields: [highest_bid_id], references: [id], onDelete: SetNull)
   bids        Bid[] @relation("AuctionBids")
+  seller_review SellerReview?
 
   @@index([seller_id])
   @@index([product_id, status])
   @@index([winner_id])
   @@index([status, start_time])
   @@index([status, end_time])
+}
+
+// ============================================================
+// SELLER PROFILE TABLE
+// ============================================================
+// Stores public, seller-specific information separately from
+// account credentials and identity data.
+// ============================================================
+
+model SellerProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  seller_id      String   @unique @db.Uuid
+  short_bio      String?  @db.VarChar(150)
+  bio            String?  @db.Text
+  banner_url     String?  @db.VarChar(500)
+  website_url    String?  @db.VarChar(500)
+  rating_average Decimal  @default(0) @db.Decimal(3, 2)
+  rating_count   Int      @default(0)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  seller User @relation(fields: [seller_id], references: [id], onDelete: Cascade)
+
+  @@index([rating_average, rating_count])
+}
+
+// ============================================================
+// SELLER REVIEW TABLE
+// ============================================================
+// One winning bidder can review the seller once per completed
+// auction. Aggregate rating is derived from these records.
+// ============================================================
+
+model SellerReview {
+  id          String   @id @default(uuid()) @db.Uuid
+  seller_id   String   @db.Uuid
+  reviewer_id String   @db.Uuid
+  auction_id  String   @unique @db.Uuid
+  rating      Int
+  comment     String?  @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  seller   User    @relation("ReviewedSeller", fields: [seller_id], references: [id], onDelete: Cascade)
+  reviewer User    @relation("ReviewAuthor", fields: [reviewer_id], references: [id], onDelete: Cascade)
+  auction  Auction @relation(fields: [auction_id], references: [id], onDelete: Cascade)
+
+  @@index([seller_id, created_at])
+  @@index([reviewer_id, created_at])
 }
 
 // ============================================================
