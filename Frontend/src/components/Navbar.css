@@ -37,13 +37,33 @@
   gap: 1.25rem;
   align-items: center;
 }
+.desktop-nav { align-items: center; display: flex; gap: 1rem; }
 
 /* Unauthenticated State */
 .navbar-unauthenticated {
   display: flex;
-  gap: 1rem;
+  gap: 10px;
   align-items: center;
 }
+
+.guest-login-link, .guest-register-link {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  text-decoration: none;
+  transition: background-color .2s, border-color .2s, color .2s, transform .2s;
+}
+
+.guest-login-link { color: #31584f; }
+.guest-login-link:hover { background: #edf4ee; color: #183b3a; }
+.guest-register-link { background: #d96f2b; border-color: #d96f2b; color: #fffdf7; }
+.guest-register-link:hover { background: #b9511c; border-color: #b9511c; transform: translateY(-1px); }
 
 .nav-link {
   color: #31584f;
@@ -59,16 +79,6 @@
   color: #183b3a;
 }
 
-.register-link {
-  border: 1px solid #d96f2b;
-  color: #a5471b;
-  font-weight: 600;
-}
-
-.register-link:hover {
-  background: #fff5e8;
-}
-
 /* Authenticated State */
 .navbar-authenticated {
   display: flex;
@@ -80,8 +90,9 @@
   font-size: 13px;
 }
 
-.notification-link { align-items: center; display: flex; gap: 5px; }
-.notification-link span { align-items: center; background: #d96f2b; border-radius: 50%; color: #fff; display: inline-flex; font-size: 10px; font-weight: 800; height: 18px; justify-content: center; min-width: 18px; padding: 0 4px; }
+.notification-button, .avatar-button, .menu-button { align-items: center; background: transparent; color: #31584f; display: flex; font-weight: 700; justify-content: center; }
+.notification-button { font-size: 13px; gap: 5px; padding: 7px 0; }.notification-button span, .mobile-nav-link span { align-items: center; background: #d96f2b; border-radius: 50%; color: #fff; display: inline-flex; font-size: 10px; font-weight: 800; height: 18px; justify-content: center; min-width: 18px; padding: 0 4px; }
+.profile-menu { position: relative; }.avatar-button { background: #dce9e2; border: 1px solid #a9bab0; border-radius: 50%; color: #28594b; font-size: 12px; height: 34px; overflow: hidden; padding: 0; width: 34px; }.avatar-button img { height: 100%; object-fit: cover; width: 100%; }.profile-dropdown { background: #fffdf7; border: 1px solid #c9d3cb; box-shadow: 0 10px 24px rgba(0, 0, 0, .12); display: grid; gap: 7px; min-width: 180px; padding: 14px; position: absolute; right: 0; top: 42px; z-index: 110; }.profile-dropdown strong { color: #183b3a; font-size: 14px; overflow-wrap: anywhere; }.profile-dropdown small { color: #63746a; font-size: 12px; }.profile-dropdown a, .profile-dropdown button { background: transparent; color: #31584f; font-size: 13px; font-weight: 700; padding: 5px 0; text-align: left; }.profile-dropdown button { border-top: 1px solid #d8dfd8; margin-top: 3px; padding-top: 9px; }.menu-button { display: none; flex-direction: column; gap: 4px; height: 34px; padding: 7px; width: 34px; }.menu-button i { background: currentColor; display: block; height: 2px; width: 18px; }.mobile-drawer { background: #fffdf7; border-bottom: 1px solid #d8dfd8; box-shadow: 0 8px 18px rgba(0, 0, 0, .08); display: none; padding: 16px 24px; }.mobile-drawer > div { display: grid; }.mobile-nav-link { align-items: center; border-bottom: 1px solid #edf0ec; color: #31584f; display: flex; font-size: 14px; font-weight: 700; justify-content: space-between; padding: 12px 0; }.mobile-drawer > button { background: transparent; color: #a5471b; font-size: 14px; font-weight: 800; margin-top: 14px; padding: 5px 0; }
 
 .welcome-text {
   color: #52675e;
@@ -113,11 +124,7 @@
     padding: 0 16px;
   }
 
-  .navbar-links {
-    gap: 0.8rem;
-    overflow-x: auto;
-    max-width: 100%;
-  }
+  .navbar-links { gap: .65rem; }.desktop-nav { display: none; }.menu-button, .mobile-drawer { display: flex; }.mobile-drawer { display: block; }.notification-button { font-size: 0; }.notification-button::before { content: 'Alerts'; font-size: 12px; }.notification-button span { font-size: 9px; }.navbar-authenticated { gap: .65rem; }
 
   .welcome-text {
     font-size: 0.85rem;

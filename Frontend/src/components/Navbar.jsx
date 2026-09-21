@@ -13,6 +13,8 @@ import './Navbar.css';
 function Navbar({ currentUser, onLogout }) {
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
@@ -32,8 +34,19 @@ function Navbar({ currentUser, onLogout }) {
 
   const handleLogout = async () => {
     await onLogout();
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
     navigate('/');
   };
+
+  const initials = currentUser?.display_name?.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const sellerLinks = [
+    { to: '/seller', label: 'Overview' },
+    { to: '/seller/products', label: 'Products' },
+    { to: '/seller/auctions', label: 'Auctions' },
+    { to: '/seller/profile', label: 'Public profile' },
+  ];
+  const links = currentUser?.account_type === 'SELLER' ? sellerLinks : [{ to: '/auctions', label: 'Browse auctions' }, { to: '/auctioneers', label: 'Auctioneers' }, { to: '/bid-history', label: 'My bids' }];
 
   return (
     <nav className="navbar">
@@ -45,36 +58,24 @@ function Navbar({ currentUser, onLogout }) {
         <div className="navbar-links">
           {currentUser ? (
             <div className="navbar-authenticated">
-              {currentUser.account_type === 'BIDDER' && (
-                <NavLink to="/" className="nav-link">Browse auctions</NavLink>
-              )}
-              {currentUser.account_type === 'SELLER' && (
-                <>
-                  <a href="/seller#dashboard" className="nav-link">Dashboard</a>
-                  <a href="/seller#products" className="nav-link">My Products</a>
-                  <a href="/seller#create-product" className="nav-link">Create Product</a>
-                  <a href="/seller#auctions" className="nav-link">My Auctions</a>
-                  <a href="/seller#profile" className="nav-link">Profile</a>
-                </>
-              )}
-              <NavLink to="/notifications" className="nav-link notification-link">Notifications{unreadCount > 0 ? <span>{unreadCount > 99 ? '99+' : unreadCount}</span> : null}</NavLink>
-              <span className="welcome-text">{currentUser.display_name}</span>
-              <button onClick={handleLogout} className="logout-btn">
-                Logout
-              </button>
+              <div className="desktop-nav">{links.map((link) => <NavLink key={link.to} to={link.to} className="nav-link">{link.label}</NavLink>)}</div>
+              <NavLink to="/notifications" className="notification-button" aria-label="Open notifications">Notifications{unreadCount > 0 ? <span>{unreadCount > 99 ? '99+' : unreadCount}</span> : null}</NavLink>
+              <div className="profile-menu"><button className="avatar-button" type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} aria-label="Open account menu">{currentUser.avatar_url ? <img src={currentUser.avatar_url} alt="" /> : initials}</button>{isProfileOpen ? <div className="profile-dropdown"><strong>{currentUser.display_name}</strong><small>{currentUser.account_type === 'SELLER' ? 'Seller account' : 'Bidder account'}</small>{currentUser.account_type === 'SELLER' ? <NavLink to="/seller/profile" onClick={() => setIsProfileOpen(false)}>Public profile</NavLink> : null}<button type="button" onClick={handleLogout}>Logout</button></div> : null}</div>
+              <button className="menu-button" type="button" onClick={() => setIsMenuOpen((open) => !open)} aria-expanded={isMenuOpen} aria-label="Open navigation"><i /><i /><i /></button>
             </div>
           ) : (
             <div className="navbar-unauthenticated">
-              <Link to="/login" className="nav-link">
+              <Link to="/login" className="guest-login-link">
                 Login
               </Link>
-              <Link to="/register" className="nav-link register-link">
+              <Link to="/register" className="guest-register-link">
                 Register
               </Link>
             </div>
           )}
         </div>
       </div>
+      {currentUser && isMenuOpen ? <div className="mobile-drawer"><div>{links.map((link) => <NavLink key={link.to} to={link.to} className="mobile-nav-link" onClick={() => setIsMenuOpen(false)}>{link.label}</NavLink>)}<NavLink to="/notifications" className="mobile-nav-link" onClick={() => setIsMenuOpen(false)}>Notifications{unreadCount > 0 ? <span>{unreadCount}</span> : null}</NavLink></div><button type="button" onClick={handleLogout}>Logout</button></div> : null}
     </nav>
   );
 }

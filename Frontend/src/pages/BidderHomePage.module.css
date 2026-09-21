@@ -107,21 +107,24 @@
 
 .category {
   align-items: center;
-  background: #fffdf7;
+  background: #f6f8f3;
   border: 1px solid #c9d3cb;
+  border-radius: 999px;
   color: #44564c;
   display: flex;
   flex: 0 0 auto;
   font-size: 13px;
   font-weight: 700;
   gap: 8px;
-  min-height: 48px;
-  padding: 5px 12px 5px 5px;
+  min-height: 46px;
+  padding: 4px 15px 4px 5px;
+  transition: background-color .2s, border-color .2s, color .2s, transform .2s;
   white-space: nowrap;
 }
 
 .category img, .allIcon {
   background: #e1ece4;
+  border-radius: 50%;
   height: 36px;
   object-fit: cover;
   width: 36px;
@@ -140,10 +143,11 @@
   background: #fff7ed;
   border: 1px solid #d96f2b;
   color: #173b3a;
+  transform: translateY(-1px);
 }
 
 .categoryActive {
-  background: #fff7ed;
+  background: #fff2df;
   border: 1px solid #d96f2b;
   color: #173b3a;
 }

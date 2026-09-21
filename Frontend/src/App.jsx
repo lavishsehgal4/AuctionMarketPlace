@@ -11,9 +11,15 @@ import BidderHomePage from './pages/BidderHomePage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerAuctionDetailPage from './pages/SellerAuctionDetailPage';
+import SellerProductsPage from './pages/SellerProductsPage';
+import SellerProductCreatePage from './pages/SellerProductCreatePage';
+import SellerAuctionsPage from './pages/SellerAuctionsPage';
+import SellerAuctionCreatePage from './pages/SellerAuctionCreatePage';
+import SellerProfileEditPage from './pages/SellerProfileEditPage';
 import AuctioneersPage from './pages/AuctioneersPage';
 import SellerProfilePage from './pages/SellerProfilePage';
 import NotificationsPage from './pages/NotificationsPage';
+import BidderHistoryPage from './pages/BidderHistoryPage';
 import { logoutUser, refreshAccessToken } from './api/authApi';
 import socket from './api/socket';
 
@@ -142,6 +148,7 @@ export default function App() {
         <Route path="/auctioneers" element={<AuctioneersPage />} />
         <Route path="/auctioneers/:sellerId" element={<SellerProfilePage />} />
         <Route path="/notifications" element={<RequireAuth currentUser={currentUser}><NotificationsPage /></RequireAuth>} />
+        <Route path="/bid-history" element={<RequireAuth currentUser={currentUser}><BidderHistoryPage /></RequireAuth>} />
 
         <Route
           path="/seller"
@@ -151,6 +158,11 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route path="/seller/products" element={<RequireAuth currentUser={currentUser}><SellerProductsPage /></RequireAuth>} />
+        <Route path="/seller/products/new" element={<RequireAuth currentUser={currentUser}><SellerProductCreatePage /></RequireAuth>} />
+        <Route path="/seller/auctions" element={<RequireAuth currentUser={currentUser}><SellerAuctionsPage /></RequireAuth>} />
+        <Route path="/seller/auctions/new" element={<RequireAuth currentUser={currentUser}><SellerAuctionCreatePage /></RequireAuth>} />
+        <Route path="/seller/profile" element={<RequireAuth currentUser={currentUser}><SellerProfileEditPage currentUser={currentUser} /></RequireAuth>} />
         <Route
           path="/seller/auctions/:id"
           element={

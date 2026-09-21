@@ -40,6 +40,13 @@ export default function BidderHomePage({ currentUser }) {
     return () => { isCurrent = false; };
   }, [activeCategory]);
 
+  const changeCategory = (categoryId) => {
+    if (categoryId === activeCategory) return;
+    setIsLoadingAuctions(true);
+    setAuctionError('');
+    setActiveCategory(categoryId);
+  };
+
   const categoryTabs = [{ id: 'all', name: 'All' }, ...categories];
 
   return (
@@ -67,11 +74,11 @@ export default function BidderHomePage({ currentUser }) {
             <button
               key={category.id}
               className={`${styles.category} ${activeCategory === category.id ? styles.categoryActive : ''}`}
-              onClick={() => setActiveCategory(category.id)}
+              onClick={() => changeCategory(category.id)}
               role="tab"
               aria-selected={activeCategory === category.id}
             >
-              {category.image_url ? <img src={category.image_url} alt="" /> : <span className={styles.allIcon}>All</span>}
+              {category.image_url ? <img src={category.image_url} alt="" /> : null}
               <span>{category.name}</span>
             </button>
           ))}

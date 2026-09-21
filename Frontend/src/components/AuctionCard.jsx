@@ -20,10 +20,12 @@ export default function AuctionCard({ auction, currentUser }) {
   const isLive = status === 'ACTIVE';
   const price = isLive ? (highestBid?.amount ?? 0) : startingPrice;
   const timeLabel = isLive ? formatTimeLeft(endTime) : `Opens ${formatDateTime(startTime)}`;
-  const actionLabel = isLive ? (currentUser ? 'View Auction' : 'Sign in to bid') : 'View Auction';
+  const requiresLogin = !currentUser && (status === 'ACTIVE' || status === 'SCHEDULED');
+  const destination = requiresLogin ? '/login' : `/auction/${id}`;
+  const actionLabel = requiresLogin ? 'Sign in to view' : 'View Auction';
 
   return (
-    <Link to={`/auction/${id}`} className={styles.card} aria-label={`View auction: ${product.title}`}>
+    <Link to={destination} className={styles.card} aria-label={`${requiresLogin ? 'Sign in to view' : 'View auction'}: ${product.title}`}>
       <div className={styles.imageWrap}>
         <img
           src={product.image_url || ''}

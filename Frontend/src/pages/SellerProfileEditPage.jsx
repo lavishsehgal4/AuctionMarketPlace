@@ -1,0 +1,15 @@
+import { useEffect, useState } from 'react';
+import SellerWorkspace from '../components/SellerWorkspace';
+import { getSellerProfile, updateMySellerProfile } from '../api/sellerProfilesApi';
+import { useToast } from '../components/toastContext';
+import styles from './SellerPages.module.css';
+
+export default function SellerProfileEditPage({ currentUser }) {
+  const showToast = useToast();
+  const [form, setForm] = useState({ short_bio: '', bio: '', banner_url: '', website_url: '' });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => { let isCurrent = true; getSellerProfile(currentUser.id).then((seller) => { if (!isCurrent) return; setForm({ short_bio: seller.seller_profile?.short_bio || '', bio: seller.seller_profile?.bio || '', banner_url: seller.seller_profile?.banner_url || '', website_url: seller.seller_profile?.website_url || '' }); }).catch((error) => isCurrent && showToast(error.message || 'Unable to load your public profile.')).finally(() => isCurrent && setIsLoading(false)); return () => { isCurrent = false; }; }, [currentUser.id, showToast]);
+  const submit = async (event) => { event.preventDefault(); setIsSaving(true); try { await updateMySellerProfile({ short_bio: form.short_bio.trim() || undefined, bio: form.bio.trim() || undefined, banner_url: form.banner_url.trim() || undefined, website_url: form.website_url.trim() || undefined }); showToast('Public profile updated.', 'success'); } catch (error) { showToast(error.message || 'Unable to update public profile.'); } finally { setIsSaving(false); } };
+  return <SellerWorkspace title="Public profile" eyebrow="AUCTIONEER IDENTITY">{isLoading ? <div className={styles.loader}><i />Loading public profile...</div> : <div className={styles.profileGrid}><form className={styles.form} onSubmit={submit}><label className={styles.full}>Short bio, up to five words<input value={form.short_bio} onChange={(event) => setForm({ ...form, short_bio: event.target.value })} maxLength="150" placeholder="Best auctions of Canada" /></label><label className={styles.full}>Bio<textarea value={form.bio} onChange={(event) => setForm({ ...form, bio: event.target.value })} rows="6" maxLength="2000" placeholder="Tell bidders what you specialise in." /></label><label>Banner image URL<input type="url" value={form.banner_url} onChange={(event) => setForm({ ...form, banner_url: event.target.value })} /></label><label>Website URL<input type="url" value={form.website_url} onChange={(event) => setForm({ ...form, website_url: event.target.value })} /></label><button className="btn-primary" type="submit" disabled={isSaving}>{isSaving ? 'Saving profile...' : 'Save public profile'}</button></form><aside className={styles.preview}>{form.banner_url ? <img src={form.banner_url} alt="" /> : null}<p>PUBLIC PREVIEW</p><h2>{currentUser.display_name}</h2>{form.short_bio ? <strong>{form.short_bio}</strong> : null}<span>{form.bio || 'Your public introduction will appear here.'}</span></aside></div>}</SellerWorkspace>;
+}
